@@ -1,0 +1,4 @@
+cron:
+- description: Check courses
+  url: /checkCourses
+  schedule: every 15 minutes
