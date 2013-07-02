@@ -1,4 +1,4 @@
 cron:
-- description: Check courses
-  url: /checkCourses
+- description: Check classes
+  url: /checkClasses
   schedule: every 15 minutes

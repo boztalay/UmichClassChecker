@@ -21,7 +21,7 @@
 		<label for="section">Section Number:&nbsp</label>
 		<input type="text" id="section" name="SectionNumber" placeholder="Section Number">
 		<br>
-		<button type="submit">Track Course</button>
+		<button type="submit">Track Class</button>
 	</form>
 	<br>
 	<br>
@@ -36,13 +36,15 @@
 			<td>Status</td>
 			<td>Course Guide Page</td>
 		</tr>
-		<tr>
-			<td align="center">GERMAN</td>
-			<td align="center">101</td>
-			<td align="center">001</td>
-			<td align="center" bgcolor="red"></td>
-			<td align="center"><a href="www.facebook.com">Link</a></td>
-		</tr>
+		{{range .}}
+			<tr>
+				<td align="center">{{.Department}}</td>
+				<td align="center">{{.ClassNumber}}</td>
+				<td align="center">{{.SectionNumber}}</td>
+				<td align="center" bgcolor="{{.StatusColor}}"></td>
+				<td align="center"><a href="{{.CourseGuideUrl}}" target="_blank">Link</a></td>
+			</tr>
+		{{end}}
 	</table>
 
 </body>
