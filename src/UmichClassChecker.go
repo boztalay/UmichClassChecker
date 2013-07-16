@@ -176,7 +176,7 @@ func checkClassesHandler(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprint(w, "Status: ", classStatus)
 			
 			if(classStatus != class.Status) {
-				fmt.Fprint(w, " - Status changed, notifying " + user.Current(context).Email + "\n")
+				fmt.Fprint(w, " - Status changed, notifying " + class.UserEmail + "\n")
 				sendEmailNotificationAboutStatusChange(context, class, classStatus)
 			} else {
 				fmt.Fprint(w, " - Status hasn't changed\n")
@@ -235,12 +235,10 @@ func sendEmailNotificationAboutStatusChange(context appengine.Context, class Cla
 	} else {
 		statusMessage = " filled up! Crap. Sorry."
 	}
-	
-	currentUser := user.Current(context)
 
 	msg := &mail.Message {
 				Sender:  "Umich Class Checker <boztalay@gmail.com>",
-				To:      []string{currentUser.Email},
+				To:      []string{class.UserEmail},
 				Subject: "Umich Class Status Change",
 				Body:    "Hey!\n\n" +
 						 "The Umich Class Checker noticed that " + class.Department + " " + class.ClassNumber + ", section " + class.SectionNumber + statusMessage + "\n\n" +
