@@ -22,9 +22,9 @@ func init() {
 }
 
 //Incredibly secure...
-var allowedUsers = [...]string{ "test@example.com",
-							    "boztalay@umich.edu",
-							    "cjspevak@umich.edu" } 
+var allowedUsers = [...]string{ "boztalay@umich.edu",
+							    "cjspevak@umich.edu",
+							    "falynn@umich.edu" } 
 
 type Class struct {
 	UserEmail 		string
