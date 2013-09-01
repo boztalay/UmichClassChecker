@@ -102,13 +102,8 @@ func checkTheUserAndBlockIfNecessary(w http.ResponseWriter, r *http.Request) (bo
 }
 
 func isUserAllowed(userToCheck string) (bool) {
-	for _, allowedUser := range allowedUsers {
-		if(userToCheck == allowedUser) {
-			return true;
-		}
-	}
-	 
-	return false;
+	//Allowing all users for now
+	return true;
 }
 
 func buildCourseGuideUrl(classToCheck Class) (string) {
