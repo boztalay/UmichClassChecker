@@ -9,24 +9,24 @@ import (
 	"html/template"
 
 	"appengine"
-    "appengine/user"
-    "appengine/mail"
-    "appengine/urlfetch"
-    "appengine/datastore"
+	"appengine/user"
+	"appengine/mail"
+	"appengine/urlfetch"
+	"appengine/datastore"
 )
 
 func init() {
-    http.HandleFunc("/", homeHandler)
-    http.HandleFunc("/addClassToTrack", addClassHandler)
-    http.HandleFunc("/checkClasses", checkClassesHandler)
+	http.HandleFunc("/", homeHandler)
+	http.HandleFunc("/addClassToTrack", addClassHandler)
+	http.HandleFunc("/checkClasses", checkClassesHandler)
 }
 
 type Class struct {
-	UserEmail 		string
-	Department 		string
+	UserEmail		string
+	Department		string
 	ClassNumber		string
 	SectionNumber	string
-	Status 			bool
+	Status			bool
 }
 
 //Handling hitting the home page: Checking the user and loading the info
@@ -34,7 +34,7 @@ type Class struct {
 var templates = template.Must(template.ParseFiles("website/home.html"))
 
 type ClassTableRowInflater struct {
-	Department 		string
+	Department		string
 	ClassNumber		string
 	SectionNumber	string
 	StatusColor		string
@@ -42,30 +42,30 @@ type ClassTableRowInflater struct {
 }
 
 func homeHandler(w http.ResponseWriter, r *http.Request) {
-    didBlockUser := checkTheUserAndBlockIfNecessary(w, r)
+	didBlockUser := checkTheUserAndBlockIfNecessary(w, r)
 	if(didBlockUser) {
 		return
 	}
-	
+
 	context := appengine.NewContext(r)
-    currentUser := user.Current(context)
-    classesQuery := datastore.NewQuery("Class").Filter("UserEmail =", currentUser.Email)
-	
+	currentUser := user.Current(context)
+	classesQuery := datastore.NewQuery("Class").Filter("UserEmail =", currentUser.Email)
+
 	var classes []Class
 	_, err := classesQuery.GetAll(context, &classes)
 	if(err != nil) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
-	
+
 	classRowInflaters := make([]ClassTableRowInflater, len(classes))
-						
+
 	for i, class := range classes {
 		statusColor := "red"
 		if(class.Status) {
 			statusColor = "green"
 		}
 		courseGuideUrl := buildCourseGuideUrl(class)
-	
+
 		classRowInflaters[i] = ClassTableRowInflater {
 									Department: class.Department,
 									ClassNumber: class.ClassNumber,
@@ -74,8 +74,8 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 									CourseGuideUrl: courseGuideUrl,
 							   }
 	}
-	
-    err = templates.ExecuteTemplate(w, "home.html", classRowInflaters)
+
+	err = templates.ExecuteTemplate(w, "home.html", classRowInflaters)
 	if(err != nil) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -83,17 +83,17 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 
 func checkTheUserAndBlockIfNecessary(w http.ResponseWriter, r *http.Request) (bool) {
 	context := appengine.NewContext(r)
-    currentUser := user.Current(context)
-    if(currentUser == nil) {
-        url, _ := user.LoginURL(context, "/")
-        fmt.Fprintf(w, "<a href=\"%s\">Sign in or register</a>", url)
-        return true
-    } else if !isUserAllowed(currentUser.Email) {
-        fmt.Fprintf(w, "You're not authorized to use this app.")
-        return true
-    }
-    
-    return false
+	currentUser := user.Current(context)
+	if(currentUser == nil) {
+		url, _ := user.LoginURL(context, "/")
+		fmt.Fprintf(w, "<a href=\"%s\">Sign in or register</a>", url)
+		return true
+	} else if !isUserAllowed(currentUser.Email) {
+		fmt.Fprintf(w, "You're not authorized to use this app.")
+		return true
+	}
+
+	return false
 }
 
 func isUserAllowed(userToCheck string) (bool) {
@@ -108,37 +108,37 @@ func buildCourseGuideUrl(classToCheck Class) (string) {
 //Handling entering something on the form
 
 func addClassHandler(w http.ResponseWriter, r *http.Request) {
-    didBlockUser := checkTheUserAndBlockIfNecessary(w, r)
+	didBlockUser := checkTheUserAndBlockIfNecessary(w, r)
 	if(didBlockUser) {
 		return
 	}
-	
+
 	context := appengine.NewContext(r)
-    currentUser := user.Current(context)
-	
+	currentUser := user.Current(context)
+
 	department := strings.ToUpper(r.FormValue("Department"))
 	classNumber := r.FormValue("ClassNumber")
 	sectionNumber := r.FormValue("SectionNumber")
-	
+
 	classToCheck :=  Class {
 						UserEmail: currentUser.Email,
 						Department: department,
 						ClassNumber: classNumber,
 						SectionNumber: sectionNumber,
 						Status: false,
-				     }
-	
+					 }
+
 	pageBody, err := loadCourseGuidePageAndCheckValidity(context, classToCheck)
 	if(err == nil) {
 		classStatus := getStatusOfClassFromPageBody(classToCheck, pageBody)
 		classToCheck.Status = classStatus
 		_, err := datastore.Put(context, datastore.NewIncompleteKey(context, "Class", nil), &classToCheck)
-	    if(err != nil) {
-	        fmt.Fprintf(w, "There was a problem storing your class.")
-	        return
-	    } else {
-	    	http.Redirect(w, r, "/", http.StatusFound)
-	    }
+		if(err != nil) {
+			fmt.Fprintf(w, "There was a problem storing your class.")
+			return
+		} else {
+			http.Redirect(w, r, "/", http.StatusFound)
+		}
 	} else {
 		fmt.Fprintf(w, "Couldn't find that class in the course guide.")
 	}
@@ -148,23 +148,23 @@ func addClassHandler(w http.ResponseWriter, r *http.Request) {
 
 func checkClassesHandler(w http.ResponseWriter, r *http.Request) {
 	context := appengine.NewContext(r)
-    classesQuery := datastore.NewQuery("Class")
-	
+	classesQuery := datastore.NewQuery("Class")
+
 	var classes []Class
 	classKeys, err := classesQuery.GetAll(context, &classes)
 	if(err != nil) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	
+
 	for i, class := range classes {
 		pageBody, err := loadCourseGuidePageAndCheckValidity(context, class)
 		if(err == nil) {
 			fmt.Fprint(w, "Page body retrieved for: " + class.Department + " " + class.ClassNumber + " " + class.SectionNumber + " - ")
-			
+
 			classStatus := getStatusOfClassFromPageBody(class, pageBody)
 			fmt.Fprint(w, "Status: ", classStatus)
-			
+
 			if(classStatus != class.Status) {
 				fmt.Fprint(w, " - Status changed, notifying " + class.UserEmail + "\n")
 				sendEmailNotificationAboutStatusChange(context, class, classStatus)
@@ -181,10 +181,10 @@ func checkClassesHandler(w http.ResponseWriter, r *http.Request) {
 
 func loadCourseGuidePageAndCheckValidity(context appengine.Context, class Class) (string, error) {
 	courseGuideUrl := buildCourseGuideUrl(class)
-	
+
 	client := urlfetch.Client(context)
-    response, err := client.Get(courseGuideUrl)
-	
+	response, err := client.Get(courseGuideUrl)
+
 	if(err != nil) {
 		return "", err
 	}
@@ -193,13 +193,13 @@ func loadCourseGuidePageAndCheckValidity(context appengine.Context, class Class)
 	if(err != nil) {
 		return "", err
 	}
-	
+
 	bodyString := string(body)
-	
+
 	if(strings.Contains(bodyString, "Section information is currently not available")) {
 		return "", errors.New("Class doesn't exist")
 	}
-	
+
 	return bodyString, nil
 }
 
@@ -207,10 +207,10 @@ func loadCourseGuidePageAndCheckValidity(context appengine.Context, class Class)
 func getStatusOfClassFromPageBody(class Class, pageBody string) (bool) {
 	indexOfSectionRow := strings.Index(pageBody, "<table border=1 cellspacing=0 cellpadding=3><tr><td><b>" + class.SectionNumber + "<br>")
 	pageBodyAfterRowStart := pageBody[indexOfSectionRow:len(pageBody)]
-	
+
 	indexOfStatusSpan := strings.Index(pageBodyAfterRowStart, "<span")
 	pageBodyAfterSpanStart := pageBodyAfterRowStart[indexOfStatusSpan:len(pageBodyAfterRowStart)]
-	
+
 	indexOfSpanTagClose := strings.Index(pageBodyAfterSpanStart, ">")
 	indexOfSpanCloseTagOpen := strings.Index(pageBodyAfterSpanStart, "</")
 	statusString := pageBodyAfterSpanStart[indexOfSpanTagClose + 1:indexOfSpanCloseTagOpen]
@@ -228,12 +228,12 @@ func sendEmailNotificationAboutStatusChange(context appengine.Context, class Cla
 
 	msg := &mail.Message {
 				Sender:  "Umich Class Checker <boztalay@gmail.com>",
-				To:      []string{class.UserEmail},
+				To:		 []string{class.UserEmail},
 				Subject: "Umich Class Status Change",
-				Body:    "Hey!\n\n" +
+				Body:	 "Hey!\n\n" +
 						 "The Umich Class Checker noticed that " + class.Department + " " + class.ClassNumber + ", section " + class.SectionNumber + statusMessage + "\n\n" +
 						 "Have a good one!",
-           }
-    
-    mail.Send(context, msg)
+		   }
+
+	mail.Send(context, msg)
 }
