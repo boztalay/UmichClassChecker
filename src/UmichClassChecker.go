@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"html/template"
 	"encoding/json"
+	"encoding/base64"
 
 	"appengine"
 	"appengine/user"
@@ -21,6 +22,7 @@ func init() {
 	http.HandleFunc("/addClassToTrack", addClassHandler)
 	http.HandleFunc("/checkClasses", checkClassesHandler)
 	http.HandleFunc("/getTermsAndSchools", getTermsAndSchoolsHandler)
+	http.HandleFunc("/refreshAccessToken", refreshAccessTokenHandler)
 }
 
 type Class struct {
@@ -33,7 +35,7 @@ type Class struct {
 	Status		bool
 }
 
-type TermStruct struct {
+type Term struct {
 	TermCode	string
 	TermDescr	string
 }
@@ -44,8 +46,12 @@ type School struct {
 	Name		string
 }
 
-//No, I'm not too worried about this. It'll get you one whole request per second.
-var auth = "Bearer lcraDGG39rMxPj0WQ7gOw9sLg70a"
+type AuthInfo struct {
+	AccessToken	string
+	ConsumerKey	string
+	ConsumerSecret	string
+}
+
 var baseUrl = "http://api-gw.it.umich.edu/Curriculum/SOC/v1/"
 
 //Handling hitting the home page: Checking the user and loading the info
@@ -257,93 +263,159 @@ func sendEmailNotificationAboutStatusChange(context appengine.Context, class Cla
 
 //Getting the latest information on terms and schools
 
-type TermsOverallResponse struct {
-	OverallResponse TermsResponse `json:"getSOCTermsResponse"`
-}
-
-type TermsResponse struct {
-	Term	[]TermStruct
-}
-
 func getTermsAndSchoolsHandler(w http.ResponseWriter, r *http.Request) {
 	context := appengine.NewContext(r)
 
-	termsUrl := baseUrl + "Terms"
-
-	client := urlfetch.Client(context)
-	request, err := http.NewRequest("GET", termsUrl, nil)
-	request.Header.Add("Authorization", auth)
-	request.Header.Add("Accept", "application/json")
-
-	context.Infof("About to load url: %s", termsUrl)
-	response, err := client.Do(request)
-
+	err := getAndStoreTerms(context)
 	if(err != nil) {
-		context.Infof("Couldn't load terms!")
+		context.Infof("Failed to load and store the terms")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	body, err := ioutil.ReadAll(response.Body)
-	response.Body.Close()
-	if(err != nil) {
-		context.Infof("Something went wrong processing the terms response")
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	context.Infof("About to unmarshal: %s", string(body))
-	var termsResponse TermsOverallResponse
-	err = json.Unmarshal(body, &termsResponse);
-	if(err != nil) {
-		context.Infof("Couldn't unmarshal the terms response")
-		context.Infof(err.Error())
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	termsQuery := datastore.NewQuery("TermStruct").KeysOnly()
-	termKeys, err := termsQuery.GetAll(context, nil)
-	if(err != nil) {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	for _,termKey := range termKeys {
-		datastore.Delete(context, termKey)
-	}
-
-	for _,term := range termsResponse.OverallResponse.Term {
-		context.Infof("Putting a term with code %s in the datastore", term.TermCode)
-		datastore.Put(context, datastore.NewIncompleteKey(context, "TermStruct", nil), &term)
-	}
-
 	//For each term, request schools
 
 	//For each school, store in datastore
 }
 
-//TODO change how this works
-func generateApiUrl(termCode string, schoolCode string, subjectCode string, classNumber string, sectionNumber string) (string) {
-	baseUrl := "http://api-gw.it.umich.edu/Curriculum/v1/Terms"
+type TermsOverallResponse struct {
+	OverallResponse TermsResponse `json:"getSOCTermsResponse"`
+}
 
-	if(termCode != "") {
-		baseUrl += "/" + termCode
+type TermsResponse struct {
+	Terms	[]Term `json:"Term"`
+}
 
-		if(schoolCode != "") {
-			baseUrl += "/Schools/" + schoolCode
+func getAndStoreTerms(context appengine.Context) (err error) {
+	responseBody, err := runApiRequest(context, "Terms")
+	if(err != nil) {
+		context.Infof("Failed loading the terms!")
+		context.Infof(err.Error())
+		return err
+	}
 
-			if(subjectCode != "") {
-				baseUrl += "/Subjects/" + subjectCode
+	context.Infof("About to unmarshal: %s", string(responseBody))
+	var termsResponse TermsOverallResponse
+	err = json.Unmarshal(responseBody, &termsResponse);
+	if(err != nil) {
+		context.Infof("Couldn't unmarshal the terms response")
+		context.Infof(err.Error())
+		return err
+	}
 
-				if(classNumber != "") {
-					baseUrl += "/CatalogNbrs/" + classNumber
+	termsQuery := datastore.NewQuery("Term").KeysOnly()
+	termKeys, err := termsQuery.GetAll(context, nil)
+	if(err != nil) {
+		context.Infof("There was a problem loading the existing terms from the datastore")
+		context.Infof(err.Error())
+		return err
+	}
+	for _,termKey := range termKeys {
+		datastore.Delete(context, termKey)
+	}
 
-					if(sectionNumber != "") {
-						baseUrl += "/Sections/" + sectionNumber
-					} //Ready, set, go!
-				} //Wheee!
-			} //Whooooooo!
-		} //Watch out for the rock at the bottom!
-	} //Phew!
+	for _,term := range termsResponse.OverallResponse.Terms {
+		datastore.Put(context, datastore.NewIncompleteKey(context, "Term", nil), &term)
+	}
 
-	return baseUrl
+	return nil
+}
+
+//API stuff
+
+func runApiRequest(context appengine.Context, path string) (body []byte, err error) {
+	requestUrl := baseUrl + path
+
+	client := urlfetch.Client(context)
+	request, err := http.NewRequest("GET", requestUrl, nil)
+	request.Header.Add("Authorization", auth)
+	request.Header.Add("Accept", "application/json")
+
+	context.Infof("About to run request at %s", requestUrl)
+	response, err := client.Do(request)
+
+	if(err != nil) {
+		context.Infof("Request failed!")
+		return nil, err
+	}
+
+	body, err = ioutil.ReadAll(response.Body)
+	response.Body.Close()
+
+	if(err != nil) {
+		context.Infof("Couldn't read the response body!")
+		return nil, err
+	}
+
+	return body, nil
+}
+
+type RefreshAccessTokenResponse struct {
+	AccessToken	string `json:"access_token"`
+}
+
+func refreshAccessTokenHandler(w http.ResponseWriter, r *http.Request) {
+	context := appengine.NewContext(r)
+
+	authInfoQuery := datastore.NewQuery("AuthInfo")
+	var authInfos []AuthInfo
+	authInfoKeys, err := authInfoQuery.GetAll(context, &authInfos)
+	if(err != nil) {
+		context.Infof("Failed to load the auth info")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if(len(authInfos) < 1) {
+		//If there isn't any auth info in the datastore,
+		//make a blank one so I can fill it in manually later
+		blankAuthInfo := AuthInfo { AccessToken:	"blank",
+					    ConsumerKey:	"blank",
+					    ConsumerSecret:	"blank",
+					}
+		datastore.Put(context, datastore.NewIncompleteKey(context, "AuthInfo", nil), &blankAuthInfo)
+		return
+	}
+
+	authInfo := authInfos[0]
+
+	unencodedBasicAuthString := authInfo.ConsumerKey + ":" + authInfo.ConsumerSecret
+	encodedBasicAuth := base64.StdEncoding.EncodeToString([]byte(unencodedBasicAuthString))
+	encodedBasicAuth = "Basic " + encodedBasicAuth
+
+	client := urlfetch.Client(context)
+	request, err := http.NewRequest("GET", "https://api-km.it.umich.edu/token?grant_type=client_credentials&scope=PRODUCTION", nil)
+	request.Header.Add("Authorization", encodedBasicAuth)
+	request.Header.Add("Content-Type", "x-www-form-urlencoded")
+
+	response, err := client.Do(request)
+
+	if(err != nil) {
+		context.Infof("Request to get a new access token failed!")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	body, err := ioutil.ReadAll(response.Body)
+	response.Body.Close()
+
+	if(err != nil) {
+		context.Infof("Couldn't read the response body!")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	context.Infof("About to unmarshal: %s", string(body))
+	var refreshAccessTokenResponse RefreshAccessTokenResponse
+	err = json.Unmarshal(body, &refreshAccessTokenResponse)
+	if(err != nil) {
+		context.Infof("Couldn't unmarshal the response!")
+		context.Infof(err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	authInfo.AccessToken = refreshAccessTokenResponse.AccessToken
+	datastore.Put(context, authInfoKeys[0], &authInfo)
+
+	context.Infof("Successfully refreshed the access token!")
 }

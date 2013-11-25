@@ -6,3 +6,7 @@ cron:
 - description: Get terms and schools
   url: /getTermsAndSchools
   schedule: every 24 hours
+
+- description: Refresh the access token
+  url: /refreshAccessToken
+  schedule: every 55 minutes
