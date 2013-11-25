@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"io/ioutil"
 	"html/template"
+	"encoding/json"
 
 	"appengine"
 	"appengine/user"
@@ -19,26 +20,44 @@ func init() {
 	http.HandleFunc("/", homeHandler)
 	http.HandleFunc("/addClassToTrack", addClassHandler)
 	http.HandleFunc("/checkClasses", checkClassesHandler)
+	http.HandleFunc("/getTermsAndSchools", getTermsAndSchoolsHandler)
 }
 
 type Class struct {
-	UserEmail		string
-	Department		string
-	ClassNumber		string
+	UserEmail	string
+	TermCode	string
+	SchoolCode	string
+	Subject		string
+	ClassNumber	string
 	SectionNumber	string
-	Status			bool
+	Status		bool
 }
+
+type TermStruct struct {
+	TermCode	string
+	TermDescr	string
+}
+
+type School struct {
+	TermCode	string
+	Code		string
+	Name		string
+}
+
+//No, I'm not too worried about this. It'll get you one whole request per second.
+var auth = "Bearer lcraDGG39rMxPj0WQ7gOw9sLg70a"
+var baseUrl = "http://api-gw.it.umich.edu/Curriculum/SOC/v1/"
 
 //Handling hitting the home page: Checking the user and loading the info
 
 var templates = template.Must(template.ParseFiles("website/home.html"))
 
 type ClassTableRowInflater struct {
-	Department		string
-	ClassNumber		string
+	Term		string
+	Subject		string
+	ClassNumber	string
 	SectionNumber	string
-	StatusColor		string
-	CourseGuideUrl	string
+	StatusColor	string
 }
 
 func homeHandler(w http.ResponseWriter, r *http.Request) {
@@ -64,15 +83,13 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 		if(class.Status) {
 			statusColor = "green"
 		}
-		courseGuideUrl := buildCourseGuideUrl(class)
 
 		classRowInflaters[i] = ClassTableRowInflater {
-									Department: class.Department,
-									ClassNumber: class.ClassNumber,
-									SectionNumber: class.SectionNumber,
-									StatusColor: statusColor,
-									CourseGuideUrl: courseGuideUrl,
-							   }
+							Subject: class.Subject,
+							ClassNumber: class.ClassNumber,
+							SectionNumber: class.SectionNumber,
+							StatusColor: statusColor,
+					}
 	}
 
 	err = templates.ExecuteTemplate(w, "home.html", classRowInflaters)
@@ -102,7 +119,7 @@ func isUserAllowed(userToCheck string) (bool) {
 }
 
 func buildCourseGuideUrl(classToCheck Class) (string) {
-	return "http://www.lsa.umich.edu/cg/cg_sections.aspx?content=1960" + classToCheck.Department + classToCheck.ClassNumber + classToCheck.SectionNumber + "&termArray=f_13_1960"
+	return "http://www.lsa.umich.edu/cg/cg_sections.aspx?content=1960" + classToCheck.Subject + classToCheck.ClassNumber + classToCheck.SectionNumber + "&termArray=f_13_1960"
 }
 
 //Handling entering something on the form
@@ -116,17 +133,17 @@ func addClassHandler(w http.ResponseWriter, r *http.Request) {
 	context := appengine.NewContext(r)
 	currentUser := user.Current(context)
 
-	department := strings.ToUpper(r.FormValue("Department"))
+	subject := strings.ToUpper(r.FormValue("Subject"))
 	classNumber := r.FormValue("ClassNumber")
 	sectionNumber := r.FormValue("SectionNumber")
 
 	classToCheck :=  Class {
-						UserEmail: currentUser.Email,
-						Department: department,
-						ClassNumber: classNumber,
-						SectionNumber: sectionNumber,
-						Status: false,
-					 }
+				UserEmail: currentUser.Email,
+				Subject: subject,
+				ClassNumber: classNumber,
+				SectionNumber: sectionNumber,
+				Status: false,
+			 }
 
 	pageBody, err := loadCourseGuidePageAndCheckValidity(context, classToCheck)
 	if(err == nil) {
@@ -160,7 +177,7 @@ func checkClassesHandler(w http.ResponseWriter, r *http.Request) {
 	for i, class := range classes {
 		pageBody, err := loadCourseGuidePageAndCheckValidity(context, class)
 		if(err == nil) {
-			fmt.Fprint(w, "Page body retrieved for: " + class.Department + " " + class.ClassNumber + " " + class.SectionNumber + " - ")
+			fmt.Fprint(w, "Page body retrieved for: " + class.Subject + " " + class.ClassNumber + " " + class.SectionNumber + " - ")
 
 			classStatus := getStatusOfClassFromPageBody(class, pageBody)
 			fmt.Fprint(w, "Status: ", classStatus)
@@ -227,13 +244,106 @@ func sendEmailNotificationAboutStatusChange(context appengine.Context, class Cla
 	}
 
 	msg := &mail.Message {
-				Sender:  "Umich Class Checker <boztalay@gmail.com>",
+				Sender:		"Umich Class Checker <umclasschecker@gmail.com>",
 				To:		 []string{class.UserEmail},
-				Subject: "Umich Class Status Change",
-				Body:	 "Hey!\n\n" +
-						 "The Umich Class Checker noticed that " + class.Department + " " + class.ClassNumber + ", section " + class.SectionNumber + statusMessage + "\n\n" +
-						 "Have a good one!",
+				Subject:	"Umich Class Status Change",
+				Body:		"Hey!\n\n" +
+						"The Umich Class Checker noticed that " + class.Subject + " " + class.ClassNumber + ", section " + class.SectionNumber + statusMessage + "\n\n" +
+						"Have a good one!",
 		   }
 
 	mail.Send(context, msg)
+}
+
+//Getting the latest information on terms and schools
+
+type TermsOverallResponse struct {
+	OverallResponse TermsResponse `json:"getSOCTermsResponse"`
+}
+
+type TermsResponse struct {
+	Term	[]TermStruct
+}
+
+func getTermsAndSchoolsHandler(w http.ResponseWriter, r *http.Request) {
+	context := appengine.NewContext(r)
+
+	termsUrl := baseUrl + "Terms"
+
+	client := urlfetch.Client(context)
+	request, err := http.NewRequest("GET", termsUrl, nil)
+	request.Header.Add("Authorization", auth)
+	request.Header.Add("Accept", "application/json")
+
+	context.Infof("About to load url: %s", termsUrl)
+	response, err := client.Do(request)
+
+	if(err != nil) {
+		context.Infof("Couldn't load terms!")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	body, err := ioutil.ReadAll(response.Body)
+	response.Body.Close()
+	if(err != nil) {
+		context.Infof("Something went wrong processing the terms response")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	context.Infof("About to unmarshal: %s", string(body))
+	var termsResponse TermsOverallResponse
+	err = json.Unmarshal(body, &termsResponse);
+	if(err != nil) {
+		context.Infof("Couldn't unmarshal the terms response")
+		context.Infof(err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	termsQuery := datastore.NewQuery("TermStruct").KeysOnly()
+	termKeys, err := termsQuery.GetAll(context, nil)
+	if(err != nil) {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	for _,termKey := range termKeys {
+		datastore.Delete(context, termKey)
+	}
+
+	for _,term := range termsResponse.OverallResponse.Term {
+		context.Infof("Putting a term with code %s in the datastore", term.TermCode)
+		datastore.Put(context, datastore.NewIncompleteKey(context, "TermStruct", nil), &term)
+	}
+
+	//For each term, request schools
+
+	//For each school, store in datastore
+}
+
+//TODO change how this works
+func generateApiUrl(termCode string, schoolCode string, subjectCode string, classNumber string, sectionNumber string) (string) {
+	baseUrl := "http://api-gw.it.umich.edu/Curriculum/v1/Terms"
+
+	if(termCode != "") {
+		baseUrl += "/" + termCode
+
+		if(schoolCode != "") {
+			baseUrl += "/Schools/" + schoolCode
+
+			if(subjectCode != "") {
+				baseUrl += "/Subjects/" + subjectCode
+
+				if(classNumber != "") {
+					baseUrl += "/CatalogNbrs/" + classNumber
+
+					if(sectionNumber != "") {
+						baseUrl += "/Sections/" + sectionNumber
+					} //Ready, set, go!
+				} //Wheee!
+			} //Whooooooo!
+		} //Watch out for the rock at the bottom!
+	} //Phew!
+
+	return baseUrl
 }

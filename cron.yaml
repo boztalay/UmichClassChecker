@@ -1,4 +1,8 @@
 cron:
 - description: Check classes
   url: /checkClasses
-  schedule: every 15 minutes
+  schedule: every 30 minutes
+
+- description: Get terms and schools
+  url: /getTermsAndSchools
+  schedule: every 24 hours
