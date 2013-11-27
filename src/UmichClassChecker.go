@@ -54,7 +54,7 @@ type AuthInfo struct {
 	ConsumerSecret	string
 }
 
-var baseUrl = "http://api-gw.it.umich.edu/Curriculum/SOC/v1/"
+var baseUrl = "http://api-gw.it.umich.edu/Curriculum/SOC/v1"
 
 //Handling hitting the home page: Checking the user and loading the info
 
@@ -287,8 +287,8 @@ type TermsResponse struct {
 	Terms	[]Term `json:"Term"`
 }
 
-func getAndStoreTerms(context appengine.Context) (err error) {
-	responseBody, err := runApiRequest(context, "Terms")
+func getAndStoreTerms(context appengine.Context) (error) {
+	responseBody, err := runApiRequest(context, "/Terms")
 	if(err != nil) {
 		context.Infof("Failed loading the terms!")
 		context.Infof(err.Error())
@@ -324,8 +324,15 @@ func getAndStoreTerms(context appengine.Context) (err error) {
 
 //API stuff
 
-func runApiRequest(context appengine.Context, path string) (body []byte, err error) {
-/*	requestUrl := baseUrl + path
+func runApiRequest(context appengine.Context, path string) ([]byte, error) {
+	_, authInfos, err := readAuthInfoFromDatastore(context)
+	if(err != nil) {
+		context.Infof("Failed to load the auth info")
+		return nil, err
+	}
+
+	requestUrl := baseUrl + path;
+	auth := "Bearer " + authInfos[0].AccessToken
 
 	client := urlfetch.Client(context)
 	request, err := http.NewRequest("GET", requestUrl, nil)
@@ -340,7 +347,7 @@ func runApiRequest(context appengine.Context, path string) (body []byte, err err
 		return nil, err
 	}
 
-	body, err = ioutil.ReadAll(response.Body)
+	body, err := ioutil.ReadAll(response.Body)
 	response.Body.Close()
 
 	if(err != nil) {
@@ -348,25 +355,33 @@ func runApiRequest(context appengine.Context, path string) (body []byte, err err
 		return nil, err
 	}
 
-	return body, nil */
-	return nil, nil
+	return body, nil
+}
+
+func readAuthInfoFromDatastore(context appengine.Context) ([]*datastore.Key, []AuthInfo, error) {
+	authInfoQuery := datastore.NewQuery("AuthInfo")
+	var authInfos []AuthInfo
+	authInfoKeys, err := authInfoQuery.GetAll(context, &authInfos)
+	if(err != nil) {
+		return nil, nil, err
+	}
+
+	return authInfoKeys, authInfos, nil
 }
 
 type RefreshAccessTokenResponse struct {
 	AccessToken	string `json:"access_token"`
 }
 
-type WeirdCloser struct {
+type RequestBodyCloser struct {
 	io.Reader
 }
-func (WeirdCloser) Close() error { return nil }
+func (RequestBodyCloser) Close() error { return nil }
 
 func refreshAccessTokenHandler(w http.ResponseWriter, r *http.Request) {
 	context := appengine.NewContext(r)
 
-	authInfoQuery := datastore.NewQuery("AuthInfo")
-	var authInfos []AuthInfo
-	authInfoKeys, err := authInfoQuery.GetAll(context, &authInfos)
+	authInfoKeys, authInfos, err := readAuthInfoFromDatastore(context)
 	if(err != nil) {
 		context.Infof("Failed to load the auth info")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -394,7 +409,7 @@ func refreshAccessTokenHandler(w http.ResponseWriter, r *http.Request) {
 	request, err := http.NewRequest("POST", "https://api-km.it.umich.edu/token", nil)
 	request.Header.Add("Authorization", encodedBasicAuth)
 	request.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	request.Body = WeirdCloser{bytes.NewBufferString("grant_type=client_credentials&scope=PRODUCTION")}
+	request.Body = RequestBodyCloser{bytes.NewBufferString("grant_type=client_credentials&scope=PRODUCTION")}
 
 	response, err := client.Do(request)
 
