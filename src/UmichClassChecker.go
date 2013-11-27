@@ -1,7 +1,9 @@
 package src
 
 import (
+	"io"
 	"fmt"
+	"bytes"
 	"errors"
 	"strings"
 	"net/http"
@@ -323,7 +325,7 @@ func getAndStoreTerms(context appengine.Context) (err error) {
 //API stuff
 
 func runApiRequest(context appengine.Context, path string) (body []byte, err error) {
-	requestUrl := baseUrl + path
+/*	requestUrl := baseUrl + path
 
 	client := urlfetch.Client(context)
 	request, err := http.NewRequest("GET", requestUrl, nil)
@@ -346,12 +348,18 @@ func runApiRequest(context appengine.Context, path string) (body []byte, err err
 		return nil, err
 	}
 
-	return body, nil
+	return body, nil */
+	return nil, nil
 }
 
 type RefreshAccessTokenResponse struct {
 	AccessToken	string `json:"access_token"`
 }
+
+type WeirdCloser struct {
+	io.Reader
+}
+func (WeirdCloser) Close() error { return nil }
 
 func refreshAccessTokenHandler(w http.ResponseWriter, r *http.Request) {
 	context := appengine.NewContext(r)
@@ -383,9 +391,10 @@ func refreshAccessTokenHandler(w http.ResponseWriter, r *http.Request) {
 	encodedBasicAuth = "Basic " + encodedBasicAuth
 
 	client := urlfetch.Client(context)
-	request, err := http.NewRequest("GET", "https://api-km.it.umich.edu/token?grant_type=client_credentials&scope=PRODUCTION", nil)
+	request, err := http.NewRequest("POST", "https://api-km.it.umich.edu/token", nil)
 	request.Header.Add("Authorization", encodedBasicAuth)
-	request.Header.Add("Content-Type", "x-www-form-urlencoded")
+	request.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	request.Body = WeirdCloser{bytes.NewBufferString("grant_type=client_credentials&scope=PRODUCTION")}
 
 	response, err := client.Do(request)
 
