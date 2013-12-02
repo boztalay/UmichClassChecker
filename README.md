@@ -9,7 +9,7 @@ Current version: 0.1
 Improvements to be made
 -----------------------
 
-[ ] Use the UM APIs instead of weird web crawling
-[ ] Let users delete classes
-[ ] Make it look nicer
-[ ] Automate the gathering of term/school codes
+- Use the UM APIs instead of weird web crawling
+- Let users delete classes
+- Make it look nicer
+- Automate the gathering of term/school codes
