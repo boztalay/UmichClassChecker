@@ -44,8 +44,8 @@ type Term struct {
 
 type School struct {
 	TermCode	string
-	Code		string
-	Name		string
+	SchoolCode	string
+	SchoolDescr	string
 }
 
 type AuthInfo struct {
@@ -282,16 +282,26 @@ func sendEmailNotificationAboutStatusChange(context appengine.Context, class Cla
 func getTermsAndSchoolsHandler(w http.ResponseWriter, r *http.Request) {
 	context := appengine.NewContext(r)
 
-	err := getAndStoreTerms(context)
+	//Request all the terms
+	terms, err := getAndStoreTerms(context)
 	if(err != nil) {
 		context.Infof("Failed to load and store the terms")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	//For each term, request schools
 
-	//For each school, store in datastore
+	//For each term, request schools and store them in the datastore
+	clearSchoolsFromDatastore(context)
+	for _,term := range terms {
+		err = getAndStoreSchoolsForTerm(context, term)
+		if(err != nil) {
+			context.Infof("Failed to load and store the schools")
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+	}
 }
+
+//Getting and storing terms
 
 type TermsOverallResponse struct {
 	OverallResponse TermsResponse `json:"getSOCTermsResponse"`
@@ -301,12 +311,12 @@ type TermsResponse struct {
 	Terms	[]Term `json:"Term"`
 }
 
-func getAndStoreTerms(context appengine.Context) (error) {
+func getAndStoreTerms(context appengine.Context) ([]Term, error) {
 	responseBody, err := runApiRequest(context, "/Terms")
 	if(err != nil) {
 		context.Infof("Failed loading the terms!")
 		context.Infof(err.Error())
-		return err
+		return nil, err
 	}
 
 	context.Infof("About to unmarshal: %s", string(responseBody))
@@ -315,7 +325,7 @@ func getAndStoreTerms(context appengine.Context) (error) {
 	if(err != nil) {
 		context.Infof("Couldn't unmarshal the terms response")
 		context.Infof(err.Error())
-		return err
+		return nil, err
 	}
 
 	termsQuery := datastore.NewQuery("Term").KeysOnly()
@@ -323,7 +333,7 @@ func getAndStoreTerms(context appengine.Context) (error) {
 	if(err != nil) {
 		context.Infof("There was a problem loading the existing terms from the datastore")
 		context.Infof(err.Error())
-		return err
+		return nil, err
 	}
 	for _,termKey := range termKeys {
 		datastore.Delete(context, termKey)
@@ -331,6 +341,54 @@ func getAndStoreTerms(context appengine.Context) (error) {
 
 	for _,term := range termsResponse.OverallResponse.Terms {
 		datastore.Put(context, datastore.NewIncompleteKey(context, "Term", nil), &term)
+	}
+
+	return termsResponse.OverallResponse.Terms, nil
+}
+
+//Getting and storing schools
+
+type SchoolsOverallResponse struct {
+	OverallResponse SchoolsResponse `json:"getSOCSchoolsResponse"`
+}
+
+type SchoolsResponse struct {
+	Schools []School `json:"School"`
+}
+
+func clearSchoolsFromDatastore(context appengine.Context) {
+	schoolsQuery := datastore.NewQuery("School").KeysOnly()
+	schoolKeys, err := schoolsQuery.GetAll(context, nil)
+	if(err != nil) {
+		context.Infof("There was a problem loading the existing schools from the datastore")
+		context.Infof(err.Error())
+		return
+	}
+	for _,schoolKey := range schoolKeys {
+		datastore.Delete(context, schoolKey)
+	}
+}
+
+func getAndStoreSchoolsForTerm(context appengine.Context, term Term) (error) {
+	responseBody, err := runApiRequest(context, "/Terms/" + term.TermCode + "/Schools/")
+	if(err != nil) {
+		context.Infof("Failed loading the schools!")
+		context.Infof(err.Error())
+		return err
+	}
+
+	context.Infof("About to unmarshal: %s", string(responseBody))
+	var schoolsResponse SchoolsOverallResponse
+	err = json.Unmarshal(responseBody, &schoolsResponse);
+	if(err != nil) {
+		context.Infof("Couldn't unmarshal the schools response")
+		context.Infof(err.Error())
+		return err
+	}
+
+	for _,school := range schoolsResponse.OverallResponse.Schools {
+		school.TermCode = term.TermCode
+		datastore.Put(context, datastore.NewIncompleteKey(context, "School", nil), &school)
 	}
 
 	return nil
