@@ -6,25 +6,22 @@
 
 	<script type="text/javascript">
 		function refreshSchoolsDropdown(termsDropdown, schoolsDropdownId) {
-			var schoolCodes1970 = new Array("ENG", "DENT");
-			var schoolNames1970 = new Array("Engineering", "Dentistry");
-			var schoolCodes1960 = new Array("ENG", "MATH");
-			var schoolNames1960 = new Array("Engineering", "Mathematics");
+			{{range .Terms}}
+				var schoolCodes{{.TermCode}} = new Array("{{.FirstSchool.SchoolCode}}"{{range .Schools}},"{{.SchoolCode}}"{{end}});
+				var schoolNames{{.TermCode}} = new Array("{{.FirstSchool.SchoolDescr}}"{{range .Schools}},"{{.SchoolDescr}}"{{end}});
+			{{end}}
 
 			var schoolsDropdown = document.getElementById(schoolsDropdownId);
 			schoolsDropdown.options.length = 0;
 
 			switch(termsDropdown.value) {
-				case "1970":
-					for(i = 0; i < schoolCodes1970.length; i++) {
-						addOptionToDropdown(schoolsDropdown, schoolNames1970[i], schoolCodes1970[i]);
+				{{range .Terms}}
+				case "{{.TermCode}}":
+					for(i = 0; i < schoolCodes{{.TermCode}}.length; i++) {
+						addOptionToDropdown(schoolsDropdown, schoolNames{{.TermCode}}[i], schoolCodes{{.TermCode}}[i]);
 					}
 					break;
-				case "1960":
-					for(i = 0; i < schoolCodes1960.length; i++) {
-						addOptionToDropdown(schoolsDropdown, schoolNames1960[i], schoolCodes1960[i]);
-					}
-					break;
+				{{end}}
 				default:
 					break;
 			}

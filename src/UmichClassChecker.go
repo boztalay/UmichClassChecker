@@ -3,6 +3,7 @@ package src
 import (
 	"io"
 	"fmt"
+	"sort"
 	"bytes"
 	"errors"
 	"strings"
@@ -68,10 +69,28 @@ type ClassTableRow struct {
 	StatusColor	string
 }
 
+type TermWithSchools struct {
+	TermCode	template.JS
+	TermDescr	string
+	FirstSchool	School
+	Schools		[]School
+
+}
+
 type HomePageInflater struct {
-	Terms []Term
+	Terms []TermWithSchools
 	ClassTableRows []ClassTableRow
 }
+
+type ByTermCode []Term
+func (a ByTermCode) Len() int           { return len(a) }
+func (a ByTermCode) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a ByTermCode) Less(i, j int) bool { return a[i].TermCode > a[j].TermCode }
+
+type BySchoolName []School
+func (a BySchoolName) Len() int           { return len(a) }
+func (a BySchoolName) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a BySchoolName) Less(i, j int) bool { return a[i].SchoolDescr < a[j].SchoolDescr }
 
 func homeHandler(w http.ResponseWriter, r *http.Request) {
 	didBlockUser := checkTheUserAndBlockIfNecessary(w, r)
@@ -88,12 +107,33 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 	if(err != nil) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
+	sort.Sort(ByTermCode(terms))
+
+	termsWithSchools := make([]TermWithSchools, len(terms))
+	for i, term := range terms {
+		schoolsQuery := datastore.NewQuery("School").Filter("TermCode =", term.TermCode)
+		var schoolsForTerm []School
+
+		_, err := schoolsQuery.GetAll(context, &schoolsForTerm)
+		if(err != nil) {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		sort.Sort(BySchoolName(schoolsForTerm))
+		termsWithSchools[i] = TermWithSchools { TermCode: template.JS(term.TermCode),
+							TermDescr: term.TermDescr,
+							FirstSchool: schoolsForTerm[0],
+							Schools: schoolsForTerm[1:],
+						      }
+	}
 
 	classesQuery := datastore.NewQuery("Class").Filter("UserEmail =", currentUser.Email)
 	var classes []Class
 	_, err = classesQuery.GetAll(context, &classes)
 	if(err != nil) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 	classRows := make([]ClassTableRow, len(classes))
 
@@ -110,7 +150,7 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 					     }
 	}
 
-	homePageInflater := HomePageInflater { Terms: terms,
+	homePageInflater := HomePageInflater { Terms: termsWithSchools,
 					       ClassTableRows: classRows,
 					     }
 
