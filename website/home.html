@@ -84,16 +84,14 @@
 	<br>
 	<table border="1" cellpadding="5">
 		<tr>
-			<td>Term</td>
-			<td>Department</td>
+			<td>Subject</td>
 			<td>Class Number</td>
 			<td>Section</td>
 			<td>Status</td>
 		</tr>
 		{{range .ClassTableRows}}
 			<tr>
-				<td align="center">{{.Term}}</td>
-				<td align="center">{{.Department}}</td>
+				<td align="center">{{.Subject}}</td>
 				<td align="center">{{.ClassNumber}}</td>
 				<td align="center">{{.SectionNumber}}</td>
 				<td align="center" bgcolor="{{.StatusColor}}"></td>

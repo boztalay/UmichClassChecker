@@ -1,7 +1,7 @@
 cron:
 - description: Check classes
   url: /checkClasses
-  schedule: every 30 minutes
+  schedule: every 30 minutes from 00:15 to 23:45
 
 - description: Get terms and schools
   url: /getTermsAndSchools
@@ -9,4 +9,4 @@ cron:
 
 - description: Refresh the access token
   url: /refreshAccessToken
-  schedule: every 61 minutes
+  schedule: every 61 minutes from 00:00 to 23:23

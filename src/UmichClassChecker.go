@@ -82,6 +82,7 @@ type HomePageInflater struct {
 	ClassTableRows []ClassTableRow
 }
 
+//Some sorting definitions
 type ByTermCode []Term
 func (a ByTermCode) Len() int           { return len(a) }
 func (a ByTermCode) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
@@ -177,11 +178,7 @@ func checkTheUserAndBlockIfNecessary(w http.ResponseWriter, r *http.Request) (bo
 
 func isUserAllowed(userToCheck string) (bool) {
 	//Allowing all users for now
-	return true;
-}
-
-func buildCourseGuideUrl(classToCheck Class) (string) {
-	return "http://www.lsa.umich.edu/cg/cg_sections.aspx?content=1960" + classToCheck.Subject + classToCheck.ClassNumber + classToCheck.SectionNumber + "&termArray=f_13_1960"
+	return true
 }
 
 //Handling entering something on the form
@@ -195,31 +192,34 @@ func addClassHandler(w http.ResponseWriter, r *http.Request) {
 	context := appengine.NewContext(r)
 	currentUser := user.Current(context)
 
+	termCode := r.FormValue("TermCode")
+	schoolCode := r.FormValue("SchoolCode")
 	subject := strings.ToUpper(r.FormValue("Subject"))
 	classNumber := r.FormValue("ClassNumber")
 	sectionNumber := r.FormValue("SectionNumber")
 
-	classToCheck :=  Class {
-				UserEmail: currentUser.Email,
-				Subject: subject,
-				ClassNumber: classNumber,
-				SectionNumber: sectionNumber,
-				Status: false,
-			 }
+	classToCheck :=  Class { UserEmail: currentUser.Email,
+				 TermCode: termCode,
+				 SchoolCode: schoolCode,
+				 Subject: subject,
+				 ClassNumber: classNumber,
+				 SectionNumber: sectionNumber,
+				 Status: false,
+				}
 
-	pageBody, err := loadCourseGuidePageAndCheckValidity(context, classToCheck)
+	classInfo, err := loadClassInfoAndCheckValidity(context, classToCheck)
 	if(err == nil) {
-		classStatus := getStatusOfClassFromPageBody(classToCheck, pageBody)
-		classToCheck.Status = classStatus
+		classToCheck.Status = getClassStatusFromClassInfo(classInfo)
 		_, err := datastore.Put(context, datastore.NewIncompleteKey(context, "Class", nil), &classToCheck)
 		if(err != nil) {
 			fmt.Fprintf(w, "There was a problem storing your class.")
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		} else {
 			http.Redirect(w, r, "/", http.StatusFound)
 		}
 	} else {
-		fmt.Fprintf(w, "Couldn't find that class in the course guide.")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
 
@@ -237,64 +237,61 @@ func checkClassesHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for i, class := range classes {
-		pageBody, err := loadCourseGuidePageAndCheckValidity(context, class)
+		classInfo, err := loadClassInfoAndCheckValidity(context, class)
 		if(err == nil) {
-			fmt.Fprint(w, "Page body retrieved for: " + class.Subject + " " + class.ClassNumber + " " + class.SectionNumber + " - ")
-
-			classStatus := getStatusOfClassFromPageBody(class, pageBody)
-			fmt.Fprint(w, "Status: ", classStatus)
+			classStatus := getClassStatusFromClassInfo(classInfo)
+			context.Infof("Status: ", classStatus)
 
 			if(classStatus != class.Status) {
-				fmt.Fprint(w, " - Status changed, notifying " + class.UserEmail + "\n")
+				context.Infof(" - Status changed, notifying " + class.UserEmail + "\n")
 				sendEmailNotificationAboutStatusChange(context, class, classStatus)
 			} else {
-				fmt.Fprint(w, " - Status hasn't changed\n")
+				context.Infof(" - Status hasn't changed\n")
 			}
 			class.Status = classStatus
 			datastore.Put(context, classKeys[i], &class)
 		} else {
-			fmt.Fprint(w, "Error loading the page for a class: " + err.Error() + "\n")
+			context.Infof("Error loading the info for a class: " + err.Error() + "\n")
 		}
 	}
 }
 
-func loadCourseGuidePageAndCheckValidity(context appengine.Context, class Class) (string, error) {
-	courseGuideUrl := buildCourseGuideUrl(class)
-
-	client := urlfetch.Client(context)
-	response, err := client.Get(courseGuideUrl)
-
-	if(err != nil) {
-		return "", err
-	}
-	body, err := ioutil.ReadAll(response.Body)
-	response.Body.Close()
-	if(err != nil) {
-		return "", err
-	}
-
-	bodyString := string(body)
-
-	if(strings.Contains(bodyString, "Section information is currently not available")) {
-		return "", errors.New("Class doesn't exist")
-	}
-
-	return bodyString, nil
+type ClassOverallResponse struct {
+	ClassInfo	ClassInformation `json:"getSOCSectionDetailResponse"`
 }
 
-//Yeah, this is kind of messy and fragile, but getting third party HTML parsing libraries to work with AppEngine was too much
-func getStatusOfClassFromPageBody(class Class, pageBody string) (bool) {
-	indexOfSectionRow := strings.Index(pageBody, "<table border=1 cellspacing=0 cellpadding=3><tr><td><b>" + class.SectionNumber + "<br>")
-	pageBodyAfterRowStart := pageBody[indexOfSectionRow:len(pageBody)]
+type ClassInformation struct {
+	AvailableSeats	string
+}
 
-	indexOfStatusSpan := strings.Index(pageBodyAfterRowStart, "<span")
-	pageBodyAfterSpanStart := pageBodyAfterRowStart[indexOfStatusSpan:len(pageBodyAfterRowStart)]
+func loadClassInfoAndCheckValidity(context appengine.Context, class Class) (ClassInformation, error) {
+	bogusClassInfo := ClassInformation { AvailableSeats: "-1" }
 
-	indexOfSpanTagClose := strings.Index(pageBodyAfterSpanStart, ">")
-	indexOfSpanCloseTagOpen := strings.Index(pageBodyAfterSpanStart, "</")
-	statusString := pageBodyAfterSpanStart[indexOfSpanTagClose + 1:indexOfSpanCloseTagOpen]
+	responseBody, err := runApiRequest(context, "/Terms/" + class.TermCode + "/Schools/" + class.SchoolCode + "/Subjects/" + class.Subject + "/CatalogNbrs/" + class.ClassNumber + "/Sections/" + class.SectionNumber)
+	if(err != nil) {
+		return bogusClassInfo, errors.New("Failed loading the class info!")
+	}
 
-	return (statusString == "Open")
+	bodyString := string(responseBody)
+
+	if(!strings.Contains(bodyString, "AvailableSeats")) {
+		return bogusClassInfo, errors.New("Class doesn't exist!")
+	}
+
+	context.Infof("About to unmarshal: %s", string(responseBody))
+	var classResponse ClassOverallResponse
+	err = json.Unmarshal(responseBody, &classResponse);
+	if(err != nil) {
+		context.Infof("Couldn't unmarshal the class response")
+		context.Infof(err.Error())
+		return bogusClassInfo, err
+	}
+
+	return classResponse.ClassInfo, nil
+}
+
+func getClassStatusFromClassInfo(classInfo ClassInformation) (bool) {
+	return (classInfo.AvailableSeats != "0")
 }
 
 func sendEmailNotificationAboutStatusChange(context appengine.Context, class Class, newStatus bool) {
