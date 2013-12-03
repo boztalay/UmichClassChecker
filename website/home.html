@@ -3,6 +3,44 @@
 <head>
 	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 	<title>Umich Class Checker</title>
+
+	<script type="text/javascript">
+		function refreshSchoolsDropdown(termsDropdown, schoolsDropdownId) {
+			var schoolCodes1970 = new Array("ENG", "DENT");
+			var schoolNames1970 = new Array("Engineering", "Dentistry");
+			var schoolCodes1960 = new Array("ENG", "MATH");
+			var schoolNames1960 = new Array("Engineering", "Mathematics");
+
+			var schoolsDropdown = document.getElementById(schoolsDropdownId);
+			schoolsDropdown.options.length = 0;
+
+			switch(termsDropdown.value) {
+				case "1970":
+					for(i = 0; i < schoolCodes1970.length; i++) {
+						addOptionToDropdown(schoolsDropdown, schoolNames1970[i], schoolCodes1970[i]);
+					}
+					break;
+				case "1960":
+					for(i = 0; i < schoolCodes1960.length; i++) {
+						addOptionToDropdown(schoolsDropdown, schoolNames1960[i], schoolCodes1960[i]);
+					}
+					break;
+				default:
+					break;
+			}
+		}
+
+		function addOptionToDropdown(dropdown, name, value) {
+			var newOption = document.createElement('option');
+			newOption.text = name;
+			newOption.value = value;
+			dropdown.options.add(newOption);
+		}
+
+		window.onload = function() {
+			refreshSchoolsDropdown(document.getElementById('term'), 'school');
+		}
+	</script>
 </head>
 	
 <body>
@@ -13,14 +51,15 @@
 	<br>
 	<form action="../addClassToTrack" method="POST">
 		<label for="term">Term:&nbsp</label>
-		<select id="term" name="TermCode">
+		<select id="term" name="TermCode" onchange="refreshSchoolsDropdown(this, 'school');">
 			{{range .Terms}}
 				<option value="{{.TermCode}}">{{.TermDescr}}</option>
 			{{end}}
 		</select>
 		<br>
 		<label for="school">School:&nbsp</label>
-		<input type="text" id="school" name="SchoolCode" placeholder="School (ENG, DEN, etc)">
+		<select id="school" name="SchoolCode">
+		</select>
 		<br>
 		<label for="subject">Subject:&nbsp</label>
 		<input type="text" id="subject" name="Subject" placeholder="Subect (EECS, MATH, etc)">
