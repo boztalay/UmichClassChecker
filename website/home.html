@@ -47,25 +47,33 @@
 	<div style="font-size: large;">Track a Class:</div>
 	<br>
 	<form action="../addClassToTrack" method="POST">
-		<label for="term">Term:&nbsp</label>
-		<select id="term" name="TermCode" onchange="refreshSchoolsDropdown(this, 'school');">
-			{{range .Terms}}
-				<option value="{{.TermCode}}">{{.TermDescr}}</option>
-			{{end}}
-		</select>
-		<br>
-		<label for="school">School:&nbsp</label>
-		<select id="school" name="SchoolCode">
-		</select>
-		<br>
-		<label for="subject">Subject:&nbsp</label>
-		<input type="text" id="subject" name="Subject" placeholder="Subect (EECS, MATH, etc)">
-		<br>
-		<label for="number">Class Number:&nbsp</label>
-		<input type="text" id="number" name="ClassNumber" placeholder="Class Number">
-		<br>
-		<label for="section">Section Number:&nbsp</label>
-		<input type="text" id="section" name="SectionNumber" placeholder="Section Number">
+		<!-- Got nothin on my tables -->
+		<table>
+			<tr>
+				<td><label for="term">Term:&nbsp</label></td>
+				<td><select id="term" name="TermCode" onchange="refreshSchoolsDropdown(this, 'school');" style="width: 100%;">
+					{{range .Terms}}
+						<option value="{{.TermCode}}">{{.TermDescr}}</option>
+					{{end}}
+				</select><td>
+			</tr>
+			<tr>
+				<td><label for="school">School:&nbsp</label></td>
+				<td><select id="school" name="SchoolCode" style="width: 100%;"></select></td>
+			</tr>
+			<tr>
+				<td><label for="subject">Subject:&nbsp</label></td>
+				<td><input type="text" id="subject" name="Subject" placeholder="Subect (EECS, MATH, etc)" style="width: 100%;"></td>
+			</tr>
+			<tr>
+				<td><label for="number">Class Number:&nbsp</label></td>
+				<td><input type="text" id="number" name="ClassNumber" placeholder="Class Number" style="width: 100%;"></td>
+			</tr>
+			<tr>
+				<td><label for="section">Section Number:&nbsp</label></td>
+				<td><input type="text" id="section" name="SectionNumber" placeholder="Section Number" style="width: 100%;"></td>
+			</tr>
+		</table>
 		<br>
 		<button type="submit">Track Class</button>
 	</form>
