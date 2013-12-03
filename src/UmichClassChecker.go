@@ -60,12 +60,17 @@ var baseUrl = "http://api-gw.it.umich.edu/Curriculum/SOC/v1"
 
 var templates = template.Must(template.ParseFiles("website/home.html"))
 
-type ClassTableRowInflater struct {
+type ClassTableRow struct {
 	Term		string
 	Subject		string
 	ClassNumber	string
 	SectionNumber	string
 	StatusColor	string
+}
+
+type HomePageInflater struct {
+	Terms []Term
+	ClassTableRows []ClassTableRow
 }
 
 func homeHandler(w http.ResponseWriter, r *http.Request) {
@@ -76,15 +81,21 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 
 	context := appengine.NewContext(r)
 	currentUser := user.Current(context)
-	classesQuery := datastore.NewQuery("Class").Filter("UserEmail =", currentUser.Email)
 
-	var classes []Class
-	_, err := classesQuery.GetAll(context, &classes)
+	termsQuery := datastore.NewQuery("Term")
+	var terms []Term
+	_, err := termsQuery.GetAll(context, &terms)
 	if(err != nil) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 
-	classRowInflaters := make([]ClassTableRowInflater, len(classes))
+	classesQuery := datastore.NewQuery("Class").Filter("UserEmail =", currentUser.Email)
+	var classes []Class
+	_, err = classesQuery.GetAll(context, &classes)
+	if(err != nil) {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+	classRows := make([]ClassTableRow, len(classes))
 
 	for i, class := range classes {
 		statusColor := "red"
@@ -92,15 +103,18 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 			statusColor = "green"
 		}
 
-		classRowInflaters[i] = ClassTableRowInflater {
-							Subject: class.Subject,
-							ClassNumber: class.ClassNumber,
-							SectionNumber: class.SectionNumber,
-							StatusColor: statusColor,
-					}
+		classRows[i] = ClassTableRow { Subject: class.Subject,
+					       ClassNumber: class.ClassNumber,
+					       SectionNumber: class.SectionNumber,
+					       StatusColor: statusColor,
+					     }
 	}
 
-	err = templates.ExecuteTemplate(w, "home.html", classRowInflaters)
+	homePageInflater := HomePageInflater { Terms: terms,
+					       ClassTableRows: classRows,
+					     }
+
+	err = templates.ExecuteTemplate(w, "home.html", homePageInflater)
 	if(err != nil) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}

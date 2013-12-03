@@ -13,7 +13,11 @@
 	<br>
 	<form action="../addClassToTrack" method="POST">
 		<label for="term">Term:&nbsp</label>
-		<input type="text" id="term" name="TermCode" placeholder="Term (1970 for W14)">
+		<select id="term" name="TermCode">
+			{{range .Terms}}
+				<option value="{{.TermCode}}">{{.TermDescr}}</option>
+			{{end}}
+		</select>
 		<br>
 		<label for="school">School:&nbsp</label>
 		<input type="text" id="school" name="SchoolCode" placeholder="School (ENG, DEN, etc)">
@@ -42,7 +46,7 @@
 			<td>Section</td>
 			<td>Status</td>
 		</tr>
-		{{range .}}
+		{{range .ClassTableRows}}
 			<tr>
 				<td align="center">{{.Term}}</td>
 				<td align="center">{{.Department}}</td>
