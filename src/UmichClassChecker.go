@@ -78,8 +78,9 @@ type TermWithSchools struct {
 }
 
 type HomePageInflater struct {
-	Terms []TermWithSchools
-	ClassTableRows []ClassTableRow
+	UserEmail	string
+	Terms		[]TermWithSchools
+	ClassTableRows	[]ClassTableRow
 }
 
 //Some sorting definitions
@@ -151,7 +152,8 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 					     }
 	}
 
-	homePageInflater := HomePageInflater { Terms: termsWithSchools,
+	homePageInflater := HomePageInflater { UserEmail: currentUser.Email,
+					       Terms: termsWithSchools,
 					       ClassTableRows: classRows,
 					     }
 
@@ -452,7 +454,7 @@ func runApiRequest(context appengine.Context, path string) ([]byte, error) {
 	response, err := client.Do(request)
 
 	if(err != nil) {
-		context.Infof("Request failed!")
+		context.Infof("Request failed! %s", err.Error())
 		return nil, err
 	}
 

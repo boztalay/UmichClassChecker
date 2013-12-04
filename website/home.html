@@ -42,8 +42,11 @@
 	
 <body>
 	<div style="font-size: x-large;">University of Michigan Class Checker</div>
-	<div>by Ben Oztalay</div><br>
-	
+	<div>Ben Oztalay</div><br>
+
+	<div style="font-weight: bold;">You are logged in as {{.UserEmail}}</div>
+	<br>
+
 	<div style="font-size: large;">Track a Class:</div>
 	<br>
 	<form action="../addClassToTrack" method="POST">
@@ -98,6 +101,11 @@
 			</tr>
 		{{end}}
 	</table>
+
+	<br><br>
+	<div>Version 0.2.1</div>
+	<div>Something not working? <a href="mailto:umclasschecker@gmail.com">Send me an email!</a></div>
+	<div>This is open source! <a href="https://www.github.com/boztalay/UmichClassChecker">Check out the code on Github</a></div>
 
 </body>
 </html>

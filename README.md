@@ -5,8 +5,19 @@ A Google App Engine web app in Go to periodically check the availability of clas
 
 http://umichclasschecker.appspot.com
 
-Current version: 0.2
+Current version: 0.2.1
 
+Recent Updates
+--------------
+
+- Version 0.2.1
+	- Made error logging for API requests better so I can see why some requests are failing
+	- Added a message to the top of the homepage to let users know which account they're logged in with
+	- Added a few links and a version number to the homepage
+- Version 0.2
+	- Upgraded to use the U of M APIs
+	- Changed how often it checks classes from every 15 minutes to every 30 minutes
+	- Minor UI changes
 
 Improvements to be made
 -----------------------
