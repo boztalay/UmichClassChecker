@@ -81,6 +81,7 @@ type HomePageInflater struct {
 	UserEmail	string
 	Terms		[]TermWithSchools
 	ClassTableRows	[]ClassTableRow
+	Version		string
 }
 
 //Some sorting definitions
@@ -155,6 +156,7 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 	homePageInflater := HomePageInflater { UserEmail: currentUser.Email,
 					       Terms: termsWithSchools,
 					       ClassTableRows: classRows,
+					       Version: "0.2.2",
 					     }
 
 	err = templates.ExecuteTemplate(w, "home.html", homePageInflater)
@@ -277,6 +279,7 @@ func loadClassInfoAndCheckValidity(context appengine.Context, class Class) (Clas
 	bodyString := string(responseBody)
 
 	if(!strings.Contains(bodyString, "AvailableSeats")) {
+		context.Infof("Loading class info failed, response body was: %s", bodyString)
 		return bogusClassInfo, errors.New("Class doesn't exist!")
 	}
 

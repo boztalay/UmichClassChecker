@@ -5,11 +5,14 @@ A Google App Engine web app in Go to periodically check the availability of clas
 
 http://umichclasschecker.appspot.com
 
-Current version: 0.2.1
+Current version: 0.2.2
 
 Recent Updates
 --------------
 
+- Version 0.2.2
+	- More error logging, I still didn't have enough information
+	- Changed the version number on the home page to be templated instead of hardcoded
 - Version 0.2.1
 	- Made error logging for API requests better so I can see why some requests are failing
 	- Added a message to the top of the homepage to let users know which account they're logged in with
@@ -22,6 +25,6 @@ Recent Updates
 Improvements to be made
 -----------------------
 
+- Check for duplicate class entries
 - Let users delete classes
-- Make it look nicer
-- Automate the gathering of term/school codes
+- Make it look and feel nicer
