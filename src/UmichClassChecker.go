@@ -4,6 +4,7 @@ import (
 	"io"
 	"fmt"
 	"sort"
+	"time"
 	"bytes"
 	"errors"
 	"strings"
@@ -23,6 +24,7 @@ import (
 func init() {
 	http.HandleFunc("/", homeHandler)
 	http.HandleFunc("/addClassToTrack", addClassHandler)
+	http.HandleFunc("/removeClass", removeClassHandler)
 	http.HandleFunc("/checkClasses", checkClassesHandler)
 	http.HandleFunc("/getTermsAndSchools", getTermsAndSchoolsHandler)
 	http.HandleFunc("/refreshAccessToken", refreshAccessTokenHandler)
@@ -62,6 +64,8 @@ var baseUrl = "http://api-gw.it.umich.edu/Curriculum/SOC/v1"
 var templates = template.Must(template.ParseFiles("website/home.html"))
 
 type ClassTableRow struct {
+	TermCode	string
+	SchoolCode	string
 	Term		string
 	Subject		string
 	ClassNumber	string
@@ -74,7 +78,6 @@ type TermWithSchools struct {
 	TermDescr	string
 	FirstSchool	School
 	Schools		[]School
-
 }
 
 type HomePageInflater struct {
@@ -146,7 +149,9 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 			statusColor = "green"
 		}
 
-		classRows[i] = ClassTableRow { Subject: class.Subject,
+		classRows[i] = ClassTableRow { TermCode: class.TermCode,
+					       SchoolCode: class.SchoolCode,
+					       Subject: class.Subject,
 					       ClassNumber: class.ClassNumber,
 					       SectionNumber: class.SectionNumber,
 					       StatusColor: statusColor,
@@ -156,7 +161,7 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 	homePageInflater := HomePageInflater { UserEmail: currentUser.Email,
 					       Terms: termsWithSchools,
 					       ClassTableRows: classRows,
-					       Version: "0.2.2",
+					       Version: "0.2.3",
 					     }
 
 	err = templates.ExecuteTemplate(w, "home.html", homePageInflater)
@@ -220,10 +225,52 @@ func addClassHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		} else {
+			time.Sleep(500 * time.Millisecond)
 			http.Redirect(w, r, "/", http.StatusFound)
 		}
 	} else {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+//Handling removing classes
+
+func removeClassHandler(w http.ResponseWriter, r *http.Request) {
+	context := appengine.NewContext(r)
+	classQuery := datastore.NewQuery("Class").KeysOnly()
+
+	termCode := r.FormValue("TermCode")
+	schoolCode := r.FormValue("SchoolCode")
+	subject := strings.ToUpper(r.FormValue("Subject"))
+	classNumber := r.FormValue("ClassNumber")
+	sectionNumber := r.FormValue("SectionNumber")
+
+	classQuery.Filter("TermCode =", termCode)
+	classQuery.Filter("SchoolCode =", schoolCode)
+	classQuery.Filter("Subject =", subject)
+	classQuery.Filter("ClassNumber =", classNumber)
+	classQuery.Filter("SectionNumber =", sectionNumber)
+
+	classKeys, err := classQuery.GetAll(context, nil)
+	if(err != nil) {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if(len(classKeys) != 1) {
+		fmt.Fprintf(w, "There was a problem finding your class.")
+		http.Error(w, "Uh oh", http.StatusInternalServerError)
+		return
+	}
+
+	err = datastore.Delete(context, classKeys[0])
+	if(err != nil) {
+		fmt.Fprintf(w, "There was a problem deleting your class.")
+		http.Error(w, "Uh oh", http.StatusInternalServerError)
+		return
+	} else {
+		time.Sleep(500 * time.Millisecond)
+		http.Redirect(w, r, "/", http.StatusFound)
 	}
 }
 

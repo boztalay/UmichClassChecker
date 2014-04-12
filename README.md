@@ -5,11 +5,13 @@ A Google App Engine web app in Go to periodically check the availability of clas
 
 http://umichclasschecker.appspot.com
 
-Current version: 0.2.2
+Current version: 0.2.3
 
 Recent Updates
 --------------
 
+- Version 0.2.3
+	- You can now delete classes!
 - Version 0.2.2
 	- More error logging, I still didn't have enough information
 	- Changed the version number on the home page to be templated instead of hardcoded
@@ -26,5 +28,4 @@ Improvements to be made
 -----------------------
 
 - Check for duplicate class entries
-- Let users delete classes
 - Make it look and feel nicer

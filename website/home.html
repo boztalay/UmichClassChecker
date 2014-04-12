@@ -37,6 +37,46 @@
 		window.onload = function() {
 			refreshSchoolsDropdown(document.getElementById('term'), 'school');
 		}
+
+		function removeClass(termCode, schoolCode, subject, classNumber, sectionNumber) {
+			var form = document.createElement('form');
+			form.method = 'POST';
+			form.action = '../removeClass';
+			form.style.visibility = 'hidden';
+
+			termCodeInput = document.createElement('input');
+			termCodeInput.type = 'text';
+			termCodeInput.name = 'TermCode';
+			termCodeInput.value = termCode;
+			form.appendChild(termCodeInput);
+
+			schoolCodeInput = document.createElement('input');
+			schoolCodeInput.type = 'text';
+			schoolCodeInput.name = 'SchoolCode';
+			schoolCodeInput.value = schoolCode;
+			form.appendChild(schoolCodeInput);
+
+			subjectInput = document.createElement('input');
+			subjectInput.type = 'text';
+			subjectInput.name = 'Subject';
+			subjectInput.value = subject;
+			form.appendChild(subjectInput);
+
+			classNumberInput = document.createElement('input');
+			classNumberInput.type = 'text';
+			classNumberInput.name = 'ClassNumber';
+			classNumberInput.value = classNumber;
+			form.appendChild(classNumberInput);
+
+			sectionNumberInput = document.createElement('input');
+			sectionNumberInput.type = 'text';
+			sectionNumberInput.name = 'SectionNumber';
+			sectionNumberInput.value = sectionNumber;
+			form.appendChild(sectionNumberInput);
+
+			document.body.appendChild(form);
+			form.submit();
+		}
 	</script>
 </head>
 	
@@ -87,10 +127,11 @@
 	<br>
 	<table border="1" cellpadding="5">
 		<tr>
-			<td>Subject</td>
-			<td>Class Number</td>
-			<td>Section</td>
-			<td>Status</td>
+			<td align="center">Subject</td>
+			<td align="center">Class Number</td>
+			<td align="center">Section</td>
+			<td align="center">Status</td>
+			<td align="center">Action</td>
 		</tr>
 		{{range .ClassTableRows}}
 			<tr>
@@ -98,6 +139,7 @@
 				<td align="center">{{.ClassNumber}}</td>
 				<td align="center">{{.SectionNumber}}</td>
 				<td align="center" bgcolor="{{.StatusColor}}"></td>
+				<td align="center"><button onclick='removeClass({{.TermCode}}, {{.SchoolCode}}, {{.Subject}}, {{.ClassNumber}}, {{.SectionNumber}})'>Remove</button></td>
 			</tr>
 		{{end}}
 	</table>
