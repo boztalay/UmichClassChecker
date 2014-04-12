@@ -74,6 +74,12 @@
 			sectionNumberInput.value = sectionNumber;
 			form.appendChild(sectionNumberInput);
 
+			userEmailInput = document.createElement('input');
+			userEmailInput.type = 'text';
+			userEmailInput.name = 'UserEmail';
+			userEmailInput.value = {{.UserEmail}};
+			form.appendChild(userEmailInput);
+
 			document.body.appendChild(form);
 			form.submit();
 		}

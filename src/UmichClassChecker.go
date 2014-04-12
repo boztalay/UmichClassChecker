@@ -7,6 +7,7 @@ import (
 	"time"
 	"bytes"
 	"errors"
+	"strconv"
 	"strings"
 	"net/http"
 	"io/ioutil"
@@ -244,12 +245,21 @@ func removeClassHandler(w http.ResponseWriter, r *http.Request) {
 	subject := strings.ToUpper(r.FormValue("Subject"))
 	classNumber := r.FormValue("ClassNumber")
 	sectionNumber := r.FormValue("SectionNumber")
+	userEmail := r.FormValue("UserEmail")
 
-	classQuery.Filter("TermCode =", termCode)
-	classQuery.Filter("SchoolCode =", schoolCode)
-	classQuery.Filter("Subject =", subject)
-	classQuery.Filter("ClassNumber =", classNumber)
-	classQuery.Filter("SectionNumber =", sectionNumber)
+	context.Infof("TermCode: " + termCode)
+	context.Infof("SchoolCode: " + schoolCode)
+	context.Infof("Subject: " + subject)
+	context.Infof("ClassNumber: " + classNumber)
+	context.Infof("SectionNumber: " + sectionNumber)
+	context.Infof("UserEmail: " + userEmail)
+
+	classQuery = classQuery.Filter("TermCode =", termCode)
+	classQuery = classQuery.Filter("SchoolCode =", schoolCode)
+	classQuery = classQuery.Filter("Subject =", subject)
+	classQuery = classQuery.Filter("ClassNumber =", classNumber)
+	classQuery = classQuery.Filter("SectionNumber =", sectionNumber)
+	classQuery = classQuery.Filter("UserEmail =", userEmail)
 
 	classKeys, err := classQuery.GetAll(context, nil)
 	if(err != nil) {
@@ -257,7 +267,9 @@ func removeClassHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if(len(classKeys) != 1) {
+	context.Infof("len(classKeys): " + strconv.Itoa(len(classKeys)))
+
+	if(len(classKeys) < 1) {
 		fmt.Fprintf(w, "There was a problem finding your class.")
 		http.Error(w, "Uh oh", http.StatusInternalServerError)
 		return
