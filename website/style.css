@@ -1,0 +1,106 @@
+* {
+    margin: 0;
+}
+body {
+    max-width: 620px;
+    margin: 10px auto;
+    padding: 10px;
+    font-family: sans-serif;
+}
+h1, h2, h3, p, form, table, hr {
+    margin-bottom: 10px;
+}
+
+#header {
+    margin-bottom: 40px;
+}
+    #creator {
+        margin-top: -10px;
+        font-style: italic;
+        color: #555;
+    }
+
+#left-pane {
+    margin-bottom: 40px;
+}
+    form p {
+        margin-bottom: 5px;
+    }
+    form p:last-child {
+        margin-top: 10px;
+        margin-bottom: 0;
+    }
+    label {
+        display: block;
+        font-weight: bold;
+        text-transform: lowercase;
+        font-variant: small-caps;
+    }
+    input, select {
+        display: block;
+        margin: 0;
+    }
+
+#right-pane {
+    margin-bottom: 40px;
+    position: relative;
+}
+    table {
+        border: none;
+        border-collapse: collapse;
+        width: 100%;
+    }
+    td, th {
+        padding: 5px 10px;
+        border: none;
+        text-align: left;
+    }
+    th {
+        font-weight: normal;
+        font-style: italic;
+        color: #555;
+    }
+    td {
+        border-top: 1px solid grey;
+        text-align: center;
+    }
+    .class-status {
+        font-size: 0;
+        display: inline-block;
+        width: 0;
+        height: 0;
+        padding: 8px;
+        border-radius: 8px;
+        vertical-align: text-top;
+        background-color: #ccc;
+    }
+        .class-status.green {
+            background-color: green;
+        }
+        .class-status.red {
+            background-color: red;
+        }
+
+#footer {
+    color: #888;
+    font-size: 80%;
+}
+    #footer a {
+        color: #55f;
+    }
+
+@media (min-width:640px) {
+    #left-pane {
+        float: left;
+        width: 200px;
+        margin-right: 10px;
+    }
+    #right-pane {
+        float: left;
+        width: 400px;
+        margin-left: 10px;
+    }
+    #footer {
+        clear: both;
+    }
+}

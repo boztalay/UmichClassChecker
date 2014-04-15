@@ -1,8 +1,9 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!DOCTYPE html>
 <html>
 <head>
-	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="UTF-8">
 	<title>Umich Class Checker</title>
+        <link rel="stylesheet" href="style.css">
 
 	<script type="text/javascript">
 		function refreshSchoolsDropdown(termsDropdown, schoolsDropdownId) {
@@ -87,73 +88,68 @@
 </head>
 	
 <body>
-	<div style="font-size: x-large;">University of Michigan Class Checker</div>
-	<div>Ben Oztalay</div><br>
+    <div id="header">
+	<h1>University of Michigan Class Checker</h1>
+	<p id="creator">Created by Ben Oztalay</p>
+	<p id="login">You are logged in as {{.UserEmail}}</p>
+    </div>
 
-	<div style="font-weight: bold;">You are logged in as {{.UserEmail}}</div>
-	<br>
-
-	<div style="font-size: large;">Track a Class:</div>
-	<br>
+    <div id="left-pane">
+	<h3>Track a Class</h3>
 	<form action="../addClassToTrack" method="POST">
-		<!-- Got nothin on my tables -->
-		<table>
-			<tr>
-				<td><label for="term">Term:&nbsp</label></td>
-				<td><select id="term" name="TermCode" onchange="refreshSchoolsDropdown(this, 'school');" style="width: 100%;">
-					{{range .Terms}}
-						<option value="{{.TermCode}}">{{.TermDescr}}</option>
-					{{end}}
-				</select><td>
-			</tr>
-			<tr>
-				<td><label for="school">School:&nbsp</label></td>
-				<td><select id="school" name="SchoolCode" style="width: 100%;"></select></td>
-			</tr>
-			<tr>
-				<td><label for="subject">Subject:&nbsp</label></td>
-				<td><input type="text" id="subject" name="Subject" placeholder="Subect (EECS, MATH, etc)" style="width: 100%;"></td>
-			</tr>
-			<tr>
-				<td><label for="number">Class Number:&nbsp</label></td>
-				<td><input type="text" id="number" name="ClassNumber" placeholder="Class Number" style="width: 100%;"></td>
-			</tr>
-			<tr>
-				<td><label for="section">Section Number:&nbsp</label></td>
-				<td><input type="text" id="section" name="SectionNumber" placeholder="Section Number" style="width: 100%;"></td>
-			</tr>
-		</table>
-		<br>
-		<button type="submit">Track Class</button>
+            <p>
+                <label for="term">Term</label>
+                <select id="term" name="TermCode" onchange="refreshSchoolsDropdown(this, 'school');">
+                    {{range .Terms}}
+                        <option value="{{.TermCode}}">{{.TermDescr}}</option>
+                    {{end}}
+                </select>
+            </p>
+            <p>
+                <label for="school">School</label>
+                <select id="school" name="SchoolCode"></select>
+            </p>
+            <p>
+                <label for="subject">Subject</label>
+                <input type="text" id="subject" name="Subject" placeholder="Subject (EECS, MATH, etc)">
+            </p>
+            <p>
+                <label for="number">Class Number</label>
+                <input type="text" id="number" name="ClassNumber" placeholder="Class Number">
+            </p>
+            <p>
+                <label for="section">Section Number</label>
+                <input type="text" id="section" name="SectionNumber" placeholder="Section Number">
+            </p>
+            <p><input type="submit" value="Track Class"></p>
 	</form>
-	<br>
-	<br>
-	
-	<div style="font-size: large;">Classes Being Tracked:</div>
-	<br>
-	<table border="1" cellpadding="5">
-		<tr>
-			<td align="center">Subject</td>
-			<td align="center">Class Number</td>
-			<td align="center">Section</td>
-			<td align="center">Status</td>
-			<td align="center">Action</td>
-		</tr>
-		{{range .ClassTableRows}}
-			<tr>
-				<td align="center">{{.Subject}}</td>
-				<td align="center">{{.ClassNumber}}</td>
-				<td align="center">{{.SectionNumber}}</td>
-				<td align="center" bgcolor="{{.StatusColor}}"></td>
-				<td align="center"><button onclick='removeClass({{.TermCode}}, {{.SchoolCode}}, {{.Subject}}, {{.ClassNumber}}, {{.SectionNumber}})'>Remove</button></td>
-			</tr>
-		{{end}}
-	</table>
+    </div>
 
-	<br><br>
-	<div>Version {{.Version}}</div>
-	<div>Something not working? <a href="mailto:umclasschecker@gmail.com">Send me an email!</a></div>
-	<div>This is open source! <a href="https://www.github.com/boztalay/UmichClassChecker">Check out the code on Github</a></div>
+    <div id="right-pane">
+	<h3>Classes Being Tracked</h3>
+	<table border="1" cellpadding="5">
+            <tr>
+                <th>Status</th>
+                <th>Class<th>
+                <th>Section</th>
+                <th>Action</th>
+            </tr>
+            {{range .ClassTableRows}}
+                <tr>
+                    <td><span class="class-status {{.StatusColor}}">{{.StatusColor}}</span></td>
+                    <td>{{.Subject}} {{.ClassNumber}}</td>
+                    <td>{{.SectionNumber}}</td>
+                    <td><button onclick='removeClass({{.TermCode}}, {{.SchoolCode}}, {{.Subject}}, {{.ClassNumber}}, {{.SectionNumber}})'>Remove</button></td>
+                </tr>
+            {{end}}
+	</table>
+    </div>
+
+    <div id="footer">
+        <p>Version {{.Version}}</p>
+        <p>Something not working? <a href="mailto:umclasschecker@gmail.com">Send me an email!</a></p>
+        <p>This is open source! <a href="https://www.github.com/boztalay/UmichClassChecker">Check out the code on Github</a></p>
+    </div>
 
 </body>
 </html>
