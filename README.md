@@ -5,11 +5,12 @@ A Google App Engine web app in Go to periodically check the availability of clas
 
 http://umichclasschecker.appspot.com
 
-Current version: 0.2.3
+Current version: 0.2.4
 
 Recent Updates
 --------------
-
+- Version 0.2.4
+	- It looks nice now with a CSS overhaul by @nkorth!
 - Version 0.2.3
 	- You can now delete classes!
 - Version 0.2.2
