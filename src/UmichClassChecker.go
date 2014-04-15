@@ -24,6 +24,7 @@ import (
 
 func init() {
 	http.HandleFunc("/", homeHandler)
+	http.HandleFunc("/style.css", stylesheetHandler)
 	http.HandleFunc("/addClassToTrack", addClassHandler)
 	http.HandleFunc("/removeClass", removeClassHandler)
 	http.HandleFunc("/checkClasses", checkClassesHandler)
@@ -62,7 +63,7 @@ var baseUrl = "http://api-gw.it.umich.edu/Curriculum/SOC/v1"
 
 //Handling hitting the home page: Checking the user and loading the info
 
-var templates = template.Must(template.ParseFiles("website/home.html"))
+var templates = template.Must(template.ParseFiles("website/home.html", "website/style.css"))
 
 type ClassTableRow struct {
 	TermCode	string
@@ -166,6 +167,19 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 					     }
 
 	err = templates.ExecuteTemplate(w, "home.html", homePageInflater)
+	if(err != nil) {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+type StylesheetInflater struct {
+	//Empty type so we can serve the stylesheet. Might be a goofy way of accomplishing this
+}
+
+func stylesheetHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/css")
+	stylesheetInflater := StylesheetInflater {}
+	err := templates.ExecuteTemplate(w, "style.css", stylesheetInflater)
 	if(err != nil) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
