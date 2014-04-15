@@ -10,7 +10,7 @@ Current version: 0.2.4
 Recent Updates
 --------------
 - Version 0.2.4
-	- It looks nice now with a CSS overhaul by @nkorth!
+	- It looks nice now with a CSS overhaul by [nkorth](https://www.github.com/nkorth)
 - Version 0.2.3
 	- You can now delete classes!
 - Version 0.2.2
