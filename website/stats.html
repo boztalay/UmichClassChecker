@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<title>Umich Class Checker - Stats</title>
+        <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+
+    <div id="header">
+	<h1>University of Michigan Class Checker</h1>
+	<p id="creator">Created by Ben Oztalay</p>
+	<p id="login">You are logged in as {{.UserEmail}}</p>
+    </div>
+
+    <h3>Statistics</h3>
+    <div>{{.NumUsers}} users</div>
+    <div>{{.ClassesTracked}} classes being tracked</div>
+    <div>{{.MostTrackedClass}} is the most-tracked class with {{.MostTrackedClassTrackers}} users tracking it</div>
+    <div>{{.ClassesTrackedByUserWithMost}} classes tracked by the user with the most classes</div>
+
+</body>
+</html>
