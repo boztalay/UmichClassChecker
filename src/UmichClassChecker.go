@@ -30,6 +30,7 @@ func init() {
 	http.HandleFunc("/checkClasses", checkClassesHandler)
 	http.HandleFunc("/getTermsAndSchools", getTermsAndSchoolsHandler)
 	http.HandleFunc("/refreshAccessToken", refreshAccessTokenHandler)
+	http.HandleFunc("/stats", statsHandler)
 }
 
 type Class struct {
@@ -63,7 +64,7 @@ var baseUrl = "http://api-gw.it.umich.edu/Curriculum/SOC/v1"
 
 //Handling hitting the home page: Checking the user and loading the info
 
-var templates = template.Must(template.ParseFiles("website/home.html", "website/style.css"))
+var templates = template.Must(template.ParseFiles("website/home.html", "website/style.css", "website/stats.html"))
 
 type ClassTableRow struct {
 	TermCode	string
@@ -163,7 +164,7 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 	homePageInflater := HomePageInflater { UserEmail: currentUser.Email,
 					       Terms: termsWithSchools,
 					       ClassTableRows: classRows,
-					       Version: "0.2.4",
+					       Version: "0.2.5",
 					     }
 
 	err = templates.ExecuteTemplate(w, "home.html", homePageInflater)
@@ -629,4 +630,73 @@ func refreshAccessTokenHandler(w http.ResponseWriter, r *http.Request) {
 	datastore.Put(context, authInfoKeys[0], &authInfo)
 
 	context.Infof("Successfully refreshed the access token!")
+}
+
+//Stats stuff
+
+type StatsInflater struct {
+	UserEmail			string
+	ClassesTracked			int
+	MostTrackedClass		string
+	MostTrackedClassTrackers	int
+	NumUsers			int
+	ClassesTrackedByUserWithMost	int
+}
+
+func statsHandler(w http.ResponseWriter, r *http.Request) {
+	context := appengine.NewContext(r)
+	currentUser := user.Current(context)
+	classesQuery := datastore.NewQuery("Class")
+
+	var classes []Class
+	_, err := classesQuery.GetAll(context, &classes)
+	if(err != nil) {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	statsInflater := StatsInflater { UserEmail: currentUser.Email,
+					 ClassesTracked: 0,
+					 MostTrackedClass: "",
+					 MostTrackedClassTrackers: 0,
+					 NumUsers: 0,
+					 ClassesTrackedByUserWithMost: 0,
+					 }
+
+	classesSeen := map[string]int {}
+	usersSeen := map[string]int {}
+
+	for _, class := range classes {
+		fullClassName := class.Subject + " " + class.ClassNumber + " " + class.SectionNumber
+		classesSeen[fullClassName] = classesSeen[fullClassName] + 1
+		usersSeen[class.UserEmail] = usersSeen[class.UserEmail] + 1
+	}
+
+	statsInflater.ClassesTracked = len(classesSeen)
+	statsInflater.NumUsers = len(usersSeen)
+
+	userWithMostClasses := ""
+	classWithMostTrackers := ""
+
+	for userEmail, classesTracked := range usersSeen {
+		if(len(userWithMostClasses) <= 0 || classesTracked > usersSeen[userWithMostClasses]) {
+			userWithMostClasses = userEmail
+		}
+	}
+
+	statsInflater.ClassesTrackedByUserWithMost = usersSeen[userWithMostClasses]
+
+	for className, trackers := range classesSeen {
+		if(len(classWithMostTrackers) <= 0 || trackers > classesSeen[classWithMostTrackers]) {
+			classWithMostTrackers = className;
+		}
+	}
+
+	statsInflater.MostTrackedClass = classWithMostTrackers;
+	statsInflater.MostTrackedClassTrackers = classesSeen[classWithMostTrackers];
+
+	err = templates.ExecuteTemplate(w, "stats.html", statsInflater)
+	if(err != nil) {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }
