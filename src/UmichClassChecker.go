@@ -667,7 +667,7 @@ func statsHandler(w http.ResponseWriter, r *http.Request) {
 	usersSeen := map[string]int {}
 
 	for _, class := range classes {
-		fullClassName := class.Subject + " " + class.ClassNumber + " " + class.SectionNumber
+		fullClassName := class.Subject + " " + class.ClassNumber
 		classesSeen[fullClassName] = classesSeen[fullClassName] + 1
 		usersSeen[class.UserEmail] = usersSeen[class.UserEmail] + 1
 	}
