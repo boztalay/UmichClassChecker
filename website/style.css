@@ -105,3 +105,9 @@ h1, h2, h3, p, form, table, hr {
         clear: both;
     }
 }
+
+.stats-num {
+	font-weight: bold;
+}
+
+
