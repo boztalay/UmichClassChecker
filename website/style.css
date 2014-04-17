@@ -39,6 +39,7 @@ h1, h2, h3, p, form, table, hr {
     input, select {
         display: block;
         margin: 0;
+	width: 100%;
     }
 
 #right-pane {
@@ -53,7 +54,7 @@ h1, h2, h3, p, form, table, hr {
     td, th {
         padding: 5px 10px;
         border: none;
-        text-align: left;
+        text-align: center;
     }
     th {
         font-weight: normal;
