@@ -4,6 +4,7 @@
 	<meta charset="UTF-8">
 	<title>Umich Class Checker</title>
         <link rel="stylesheet" href="../style.css">
+	<link href="//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css" rel="stylesheet">
 
 	<script type="text/javascript">
 		function refreshSchoolsDropdown(termsDropdown, schoolsDropdownId) {
@@ -132,14 +133,14 @@
                 <th>Status</th>
                 <th>Class</th>
                 <th>Section</th>
-                <th id="remove-header">Action</th>
+                <th id="action-header">holder</th>
             </tr>
             {{range .ClassTableRows}}
                 <tr>
                     <td><span class="class-status {{.StatusColor}}">{{.StatusColor}}</span></td>
                     <td>{{.Subject}} {{.ClassNumber}}</td>
                     <td>{{.SectionNumber}}</td>
-                    <td><button onclick='removeClass({{.TermCode}}, {{.SchoolCode}}, {{.Subject}}, {{.ClassNumber}}, {{.SectionNumber}})'>Remove</button></td>
+                    <td><i onclick='removeClass({{.TermCode}}, {{.SchoolCode}}, {{.Subject}}, {{.ClassNumber}}, {{.SectionNumber}})' class="fa fa-trash-o" id="remove-button"></i></td>
                 </tr>
             {{end}}
 	</table>

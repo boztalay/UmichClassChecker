@@ -81,8 +81,12 @@ h1, h2, h3, p, form, table, hr {
         .class-status.red {
             background-color: red;
         }
-    #remove-header {
+    #action-header {
 	visibility: hidden;
+    }
+    #remove-button {
+	color: #555;
+	font-size: 120%;
     }
 
 #footer {
