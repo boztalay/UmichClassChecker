@@ -191,7 +191,7 @@ func addClassHandler(w http.ResponseWriter, r *http.Request) {
 	currentUser := user.Current(context)
 
 	termCode := r.FormValue("TermCode")
-	schoolCode := r.FormValue("SchoolCode")
+	schoolCode := "AUP" //This doesn't really matter, it can even be blank
 	subject := strings.ToUpper(r.FormValue("Subject"))
 	classNumber := r.FormValue("ClassNumber")
 	sectionNumber := r.FormValue("SectionNumber")
