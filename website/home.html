@@ -7,6 +7,37 @@
 	<link href="//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css" rel="stylesheet">
 
 	<script type="text/javascript">
+		function checkFormFields() {
+			var wereAllFieldsGood = true;
+			var emptyFieldBorder = "2px solid red";
+
+			var subject = document.getElementById('subject');
+			if(subject.value.length == 0) {
+				subject.style.border = emptyFieldBorder;
+				wereAllFieldsGood = false;
+			} else {
+				subject.style.border = null;
+			}
+
+			var classNumber = document.getElementById('number');
+			if(classNumber.value.length == 0) {
+				classNumber.style.border = emptyFieldBorder;
+				wereAllFieldsGood = false;
+			} else {
+				classNumber.style.border = null;
+			}
+
+			var section = document.getElementById('section');
+			if(section.value.length == 0) {
+				section.style.border = emptyFieldBorder;
+				wereAllFieldsGood = false;
+			} else {
+				section.style.border = null;
+			}
+
+			return wereAllFieldsGood;
+		}
+
 		function removeClass(termCode, schoolCode, subject, classNumber, sectionNumber) {
 			var form = document.createElement('form');
 			form.method = 'POST';
@@ -64,7 +95,7 @@
 
     <div id="left-pane">
 	<h3>Track a Class</h3>
-	<form action="../addClassToTrack" method="POST">
+	<form action="../addClassToTrack" onsubmit="return checkFormFields();" method="POST">
             <p>
                 <label for="term">Term</label>
                 <select id="term" name="TermCode">

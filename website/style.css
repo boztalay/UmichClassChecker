@@ -88,6 +88,9 @@ h1, h2, h3, p, form, table, hr {
 	color: #555;
 	font-size: 120%;
     }
+    .error {
+	border: 2px solid #ff3737;
+    }
 
 #footer {
     color: #888;
