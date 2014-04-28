@@ -85,7 +85,7 @@ type TermWithSchools struct {
 
 type HomePageInflater struct {
 	UserEmail	string
-	Terms		[]TermWithSchools
+	Terms		[]Term
 	ClassTableRows	[]ClassTableRow
 	Version		string
 }
@@ -118,25 +118,6 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	sort.Sort(ByTermCode(terms))
 
-	termsWithSchools := make([]TermWithSchools, len(terms))
-	for i, term := range terms {
-		schoolsQuery := datastore.NewQuery("School").Filter("TermCode =", term.TermCode)
-		var schoolsForTerm []School
-
-		_, err := schoolsQuery.GetAll(context, &schoolsForTerm)
-		if(err != nil) {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		sort.Sort(BySchoolName(schoolsForTerm))
-		termsWithSchools[i] = TermWithSchools { TermCode: template.JS(term.TermCode),
-							TermDescr: term.TermDescr,
-							FirstSchool: schoolsForTerm[0],
-							Schools: schoolsForTerm[1:],
-						      }
-	}
-
 	classesQuery := datastore.NewQuery("Class").Filter("UserEmail =", currentUser.Email)
 	var classes []Class
 	_, err = classesQuery.GetAll(context, &classes)
@@ -162,7 +143,7 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	homePageInflater := HomePageInflater { UserEmail: currentUser.Email,
-					       Terms: termsWithSchools,
+					       Terms: terms,
 					       ClassTableRows: classRows,
 					       Version: "0.2.5",
 					     }

@@ -7,39 +7,6 @@
 	<link href="//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css" rel="stylesheet">
 
 	<script type="text/javascript">
-		function refreshSchoolsDropdown(termsDropdown, schoolsDropdownId) {
-			{{range .Terms}}
-				var schoolCodes{{.TermCode}} = new Array("{{.FirstSchool.SchoolCode}}"{{range .Schools}},"{{.SchoolCode}}"{{end}});
-				var schoolNames{{.TermCode}} = new Array("{{.FirstSchool.SchoolDescr}}"{{range .Schools}},"{{.SchoolDescr}}"{{end}});
-			{{end}}
-
-			var schoolsDropdown = document.getElementById(schoolsDropdownId);
-			schoolsDropdown.options.length = 0;
-
-			switch(termsDropdown.value) {
-				{{range .Terms}}
-				case "{{.TermCode}}":
-					for(i = 0; i < schoolCodes{{.TermCode}}.length; i++) {
-						addOptionToDropdown(schoolsDropdown, schoolNames{{.TermCode}}[i], schoolCodes{{.TermCode}}[i]);
-					}
-					break;
-				{{end}}
-				default:
-					break;
-			}
-		}
-
-		function addOptionToDropdown(dropdown, name, value) {
-			var newOption = document.createElement('option');
-			newOption.text = name;
-			newOption.value = value;
-			dropdown.options.add(newOption);
-		}
-
-		window.onload = function() {
-			refreshSchoolsDropdown(document.getElementById('term'), 'school');
-		}
-
 		function removeClass(termCode, schoolCode, subject, classNumber, sectionNumber) {
 			var form = document.createElement('form');
 			form.method = 'POST';
@@ -100,15 +67,11 @@
 	<form action="../addClassToTrack" method="POST">
             <p>
                 <label for="term">Term</label>
-                <select id="term" name="TermCode" onchange="refreshSchoolsDropdown(this, 'school');">
+                <select id="term" name="TermCode">
                     {{range .Terms}}
                         <option value="{{.TermCode}}">{{.TermDescr}}</option>
                     {{end}}
                 </select>
-            </p>
-            <p>
-                <label for="school">School</label>
-                <select id="school" name="SchoolCode"></select>
             </p>
             <p>
                 <label for="subject">Subject</label>
