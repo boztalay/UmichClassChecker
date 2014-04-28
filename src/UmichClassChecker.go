@@ -145,7 +145,7 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 	homePageInflater := HomePageInflater { UserEmail: currentUser.Email,
 					       Terms: terms,
 					       ClassTableRows: classRows,
-					       Version: "0.2.5",
+					       Version: "0.2.6",
 					     }
 
 	err = templates.ExecuteTemplate(w, "home.html", homePageInflater)
