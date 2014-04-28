@@ -81,6 +81,9 @@ h1, h2, h3, p, form, table, hr {
         .class-status.red {
             background-color: red;
         }
+    #remove-header {
+	visibility: hidden;
+    }
 
 #footer {
     color: #888;
