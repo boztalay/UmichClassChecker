@@ -173,6 +173,18 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func checkTheUserAndBlockIfNecessary(w http.ResponseWriter, r *http.Request) (bool) {
+	context := appengine.NewContext(r)
+	currentUser := user.Current(context)
+	if(currentUser == nil) {
+		url, _ := user.LoginURL(context, "/")
+		http.Redirect(w, r, url, http.StatusFound)
+		return true
+	}
+
+	return false
+}
+
 type StylesheetInflater struct {
 	//Empty type so we can serve the stylesheet. Might be a goofy way of accomplishing this
 }
@@ -184,26 +196,6 @@ func stylesheetHandler(w http.ResponseWriter, r *http.Request) {
 	if(err != nil) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
-}
-
-func checkTheUserAndBlockIfNecessary(w http.ResponseWriter, r *http.Request) (bool) {
-	context := appengine.NewContext(r)
-	currentUser := user.Current(context)
-	if(currentUser == nil) {
-		url, _ := user.LoginURL(context, "/")
-		fmt.Fprintf(w, "<a href=\"%s\">Sign in or register</a>", url)
-		return true
-	} else if !isUserAllowed(currentUser.Email) {
-		fmt.Fprintf(w, "You're not authorized to use this app.")
-		return true
-	}
-
-	return false
-}
-
-func isUserAllowed(userToCheck string) (bool) {
-	//Allowing all users for now
-	return true
 }
 
 //Handling entering something on the form
