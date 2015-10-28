@@ -35,7 +35,7 @@ func init() {
 
 type Class struct {
 	UserEmail	string
-	TermCode	string
+	TermCode	int
 	SchoolCode	string
 	Subject		string
 	ClassNumber	string
@@ -44,12 +44,12 @@ type Class struct {
 }
 
 type Term struct {
-	TermCode	string
+	TermCode	int
 	TermDescr	string
 }
 
 type School struct {
-	TermCode	string
+	TermCode	int
 	SchoolCode	string
 	SchoolDescr	string
 }
@@ -62,12 +62,12 @@ type AuthInfo struct {
 
 var baseUrl = "http://api-gw.it.umich.edu/Curriculum/SOC/v1"
 
-//Handling hitting the home page: Checking the user and loading the info
+// Handling hitting the home page: Checking the user and loading the info
 
 var templates = template.Must(template.ParseFiles("website/home.html", "website/style.css", "website/stats.html"))
 
 type ClassTableRow struct {
-	TermCode	string
+	TermCode	int
 	SchoolCode	string
 	Term		string
 	Subject		string
@@ -90,7 +90,7 @@ type HomePageInflater struct {
 	Version		string
 }
 
-//Some sorting definitions
+// Some sorting definitions
 type ByTermCode []Term
 func (a ByTermCode) Len() int           { return len(a) }
 func (a ByTermCode) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
@@ -145,7 +145,7 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 	homePageInflater := HomePageInflater { UserEmail: currentUser.Email,
 					       Terms: terms,
 					       ClassTableRows: classRows,
-					       Version: "0.2.6",
+					       Version: "0.2.7",
 					     }
 
 	err = templates.ExecuteTemplate(w, "home.html", homePageInflater)
@@ -167,7 +167,7 @@ func checkTheUserAndBlockIfNecessary(w http.ResponseWriter, r *http.Request) (bo
 }
 
 type StylesheetInflater struct {
-	//Empty type so we can serve the stylesheet. Might be a goofy way of accomplishing this
+	// Empty type so we can serve the stylesheet. Might be a goofy way of accomplishing this
 }
 
 func stylesheetHandler(w http.ResponseWriter, r *http.Request) {
@@ -179,7 +179,7 @@ func stylesheetHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-//Handling entering something on the form
+// Handling entering something on the form
 
 func addClassHandler(w http.ResponseWriter, r *http.Request) {
 	didBlockUser := checkTheUserAndBlockIfNecessary(w, r)
@@ -190,8 +190,8 @@ func addClassHandler(w http.ResponseWriter, r *http.Request) {
 	context := appengine.NewContext(r)
 	currentUser := user.Current(context)
 
-	termCode := r.FormValue("TermCode")
-	schoolCode := "AUP" //This doesn't really matter, it can even be blank
+	termCode,_ := strconv.Atoi(r.FormValue("TermCode"))
+	schoolCode := "AUP" // This doesn't really matter, it can even be blank
 	subject := strings.ToUpper(r.FormValue("Subject"))
 	classNumber := r.FormValue("ClassNumber")
 	sectionNumber := r.FormValue("SectionNumber")
@@ -222,20 +222,20 @@ func addClassHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-//Handling removing classes
+// Handling removing classes
 
 func removeClassHandler(w http.ResponseWriter, r *http.Request) {
 	context := appengine.NewContext(r)
 	classQuery := datastore.NewQuery("Class").KeysOnly()
 
-	termCode := r.FormValue("TermCode")
+	termCode,_ := strconv.Atoi(r.FormValue("TermCode"))
 	schoolCode := r.FormValue("SchoolCode")
 	subject := strings.ToUpper(r.FormValue("Subject"))
 	classNumber := r.FormValue("ClassNumber")
 	sectionNumber := r.FormValue("SectionNumber")
 	userEmail := r.FormValue("UserEmail")
 
-	context.Infof("TermCode: " + termCode)
+	context.Infof("TermCode: " + strconv.Itoa(termCode))
 	context.Infof("SchoolCode: " + schoolCode)
 	context.Infof("Subject: " + subject)
 	context.Infof("ClassNumber: " + classNumber)
@@ -274,7 +274,7 @@ func removeClassHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-//Checking up on the classes
+// Checking up on the classes
 
 func checkClassesHandler(w http.ResponseWriter, r *http.Request) {
 	context := appengine.NewContext(r)
@@ -312,13 +312,13 @@ type ClassOverallResponse struct {
 }
 
 type ClassInformation struct {
-	AvailableSeats	string
+	AvailableSeats	int
 }
 
 func loadClassInfoAndCheckValidity(context appengine.Context, class Class) (ClassInformation, error) {
-	bogusClassInfo := ClassInformation { AvailableSeats: "-1" }
+	bogusClassInfo := ClassInformation { AvailableSeats: -1 }
 
-	responseBody, err := runApiRequest(context, "/Terms/" + class.TermCode + "/Schools/" + class.SchoolCode + "/Subjects/" + class.Subject + "/CatalogNbrs/" + class.ClassNumber + "/Sections/" + class.SectionNumber)
+	responseBody, err := runApiRequest(context, "/Terms/" + strconv.Itoa(class.TermCode) + "/Schools/" + class.SchoolCode + "/Subjects/" + class.Subject + "/CatalogNbrs/" + class.ClassNumber + "/Sections/" + class.SectionNumber)
 	if(err != nil) {
 		return bogusClassInfo, errors.New("Failed loading the class info!")
 	}
@@ -343,7 +343,7 @@ func loadClassInfoAndCheckValidity(context appengine.Context, class Class) (Clas
 }
 
 func getClassStatusFromClassInfo(classInfo ClassInformation) (bool) {
-	return (classInfo.AvailableSeats != "0")
+	return (classInfo.AvailableSeats > 0)
 }
 
 func sendEmailNotificationAboutStatusChange(context appengine.Context, class Class, newStatus bool) {
@@ -366,12 +366,12 @@ func sendEmailNotificationAboutStatusChange(context appengine.Context, class Cla
 	mail.Send(context, msg)
 }
 
-//Getting the latest information on terms and schools
+// Getting the latest information on terms and schools
 
 func getTermsAndSchoolsHandler(w http.ResponseWriter, r *http.Request) {
 	context := appengine.NewContext(r)
 
-	//Request all the terms
+	// Request all the terms
 	terms, err := getAndStoreTerms(context)
 	if(err != nil) {
 		context.Infof("Failed to load and store the terms")
@@ -379,7 +379,7 @@ func getTermsAndSchoolsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//For each term, request schools and store them in the datastore
+	// For each term, request schools and store them in the datastore
 	clearSchoolsFromDatastore(context)
 	for _,term := range terms {
 		err = getAndStoreSchoolsForTerm(context, term)
@@ -390,7 +390,7 @@ func getTermsAndSchoolsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-//Getting and storing terms
+// Getting and storing terms
 
 type TermsOverallResponse struct {
 	OverallResponse TermsResponse `json:"getSOCTermsResponse"`
@@ -435,7 +435,7 @@ func getAndStoreTerms(context appengine.Context) ([]Term, error) {
 	return termsResponse.OverallResponse.Terms, nil
 }
 
-//Getting and storing schools
+// Getting and storing schools
 
 type SchoolsOverallResponse struct {
 	OverallResponse SchoolsResponse `json:"getSOCSchoolsResponse"`
@@ -459,7 +459,7 @@ func clearSchoolsFromDatastore(context appengine.Context) {
 }
 
 func getAndStoreSchoolsForTerm(context appengine.Context, term Term) (error) {
-	responseBody, err := runApiRequest(context, "/Terms/" + term.TermCode + "/Schools/")
+	responseBody, err := runApiRequest(context, "/Terms/" + strconv.Itoa(term.TermCode) + "/Schools/")
 	if(err != nil) {
 		context.Infof("Failed loading the schools!")
 		context.Infof(err.Error())
@@ -483,7 +483,7 @@ func getAndStoreSchoolsForTerm(context appengine.Context, term Term) (error) {
 	return nil
 }
 
-//API stuff
+// API stuff
 
 func runApiRequest(context appengine.Context, path string) ([]byte, error) {
 	_, authInfos, err := readAuthInfoFromDatastore(context)
@@ -550,8 +550,8 @@ func refreshAccessTokenHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if(len(authInfos) < 1) {
-		//If there isn't any auth info in the datastore,
-		//make a blank one so I can fill it in manually later
+		// If there isn't any auth info in the datastore,
+		// make a blank one so I can fill it in manually later
 		blankAuthInfo := AuthInfo { AccessToken:	"blank",
 					    ConsumerKey:	"blank",
 					    ConsumerSecret:	"blank",
@@ -605,7 +605,7 @@ func refreshAccessTokenHandler(w http.ResponseWriter, r *http.Request) {
 	context.Infof("Successfully refreshed the access token!")
 }
 
-//Stats stuff
+// Stats stuff
 
 type StatsInflater struct {
 	UserEmail			string
