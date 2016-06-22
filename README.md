@@ -3,7 +3,7 @@ UmichClassChecker
 
 A Google App Engine web app in Go to periodically check the availability of classes at the University of Michigan and notify users of changes in availability
 
-http://umichclasschecker.appspot.com
+NOTE: I have taken down the class checker, as it's not really being used anymore and I won't be able to maintain it.
 
 Current version: 0.2.7
 
